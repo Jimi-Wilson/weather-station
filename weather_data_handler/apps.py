@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ApiConfig(AppConfig):
+class WeatherDataHandlerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'api'
+    name = 'weather_data_handler'

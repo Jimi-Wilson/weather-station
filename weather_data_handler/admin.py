@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from api.models import WeatherData, WeatherStation
+from .models import WeatherData, WeatherStation
 
 
 # Register your models here.
