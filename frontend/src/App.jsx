@@ -1,14 +1,16 @@
 import './App.css'
-import WeatherBlocks from "./components/weather-blocks.jsx";
+import WeatherBlocks from "./components/WeatherBlocks.jsx";
+import WeatherDisplay from "./components/WeatherDisplay.jsx";
 
 function App() {
 
   return (
-      <div>
-          <h1 className=" ">DIY Matlock Weather Station</h1>
-          <WeatherBlocks/>
+      <div className="flex flex-col justify-center items-center">
+          <h1 className="">Matlock Weather Station Dashboard</h1>
+          <WeatherDisplay />
       </div>
   )
 }
+
 
 export default App
