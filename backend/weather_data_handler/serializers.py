@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import WeatherData
+from .models import WeatherDataEntry
+
 
 class WeatherDataSerializer(serializers.ModelSerializer):
     class Meta:
-        model = WeatherData
+        model = WeatherDataEntry
         fields = '__all__'
         read_only_fields = ('timestamp',)
