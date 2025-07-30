@@ -1,10 +1,18 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import WeatherDataViewSet
-
-router = DefaultRouter()
-router.register('weatherdata', WeatherDataViewSet)
+from .views import GetLatestWeatherDataView, GetWeatherBetweenDates
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path(
+        'latest-weather-data/',
+        GetLatestWeatherDataView.as_view(),
+        name='latest-weather-data'
+    ),
+
+    path(
+        'weather-data-between-datetime/',
+        GetWeatherBetweenDates.as_view(),
+        name='weather-data-between-datetime'
+    )
+
+
 ]

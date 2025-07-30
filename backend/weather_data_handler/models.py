@@ -9,6 +9,9 @@ class WeatherDataEntry(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp']),
+        ]
 
     def __str__(self):
         return f"Weather Data for at {self.timestamp}"
