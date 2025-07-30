@@ -16,12 +16,11 @@ class WeatherDataViewSet(viewsets.ModelViewSet):
     serializer_class = WeatherDataSerializer
 
 
-class GetLatestWeatherDataView(generics.ListAPIView):
-    queryset = WeatherDataEntry.objects.all()
+class GetLatestWeatherDataView(generics.RetrieveAPIView):
     serializer_class = WeatherDataSerializer
 
-    def get_queryset(self):
-        return WeatherDataEntry.objects.all().latest('timestamp')
+    def get_object(self):
+        return WeatherDataEntry.objects.latest("timestamp")
 
 
 class GetWeatherBetweenDates(generics.ListAPIView):
@@ -47,4 +46,3 @@ class GetWeatherBetweenDates(generics.ListAPIView):
             raise ValidationError({
                 {"detail": "Invalid datetime format. Please use ISO 8601 format."}
             })
-
