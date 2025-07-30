@@ -1,14 +1,15 @@
-from rest_framework import viewsets, generics
+
+from rest_framework import viewsets, generics, status
 from rest_framework.exceptions import ValidationError
+from django.utils import timezone
+from django.db.models import Avg, Max, Min, Count
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import status
 
 from .models import WeatherDataEntry
 from .pagination import StandardResultsSetPagination
-from .serializers import WeatherDataSerializer
+from .serializers import WeatherDataSerializer, WeatherStatsSerializer
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class WeatherDataViewSet(viewsets.ModelViewSet):
@@ -41,8 +42,96 @@ class GetWeatherBetweenDates(generics.ListAPIView):
         try:
             start_datetime = datetime.fromisoformat(start_datetime_str)
             end_datetime = datetime.fromisoformat(end_datetime_str)
-            return queryset.filter(timestamp__range=(start_datetime, end_datetime))
+            return queryset.filter(timestamp__range=(start_datetime, end_datetime)).order_by("-timestamp")
         except ValueError:
             raise ValidationError({
-                {"detail": "Invalid datetime format. Please use ISO 8601 format."}
+                "detail": "Invalid datetime format. Please use ISO 8601 format."
             })
+
+
+class GetRecentWeatherDataView(generics.ListAPIView):
+    serializer_class = WeatherDataSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        hours_str = self.request.query_params.get("hours", 24)
+        try:
+            hours = int(hours_str)
+
+        except ValueError:
+            raise ValidationError(
+                {"detail": "Query parameter 'hours must be an integer."}
+            )
+
+        if hours > 7 * 24:
+            raise ValidationError({"detail": "hours cannot be greater than 7 days"})
+
+        since = timezone.now() - timedelta(hours=hours)
+        return WeatherDataEntry.objects.filter(timestamp__gte=since).order_by("-timestamp")
+
+
+class GetWeatherDataStatsView(generics.GenericAPIView):
+
+    def get(self, request):
+        hours_str = request.query_params.get("hours", 24)
+
+        try:
+            hours = int(hours_str)
+        except ValueError:
+            return Response(
+                {"detail": "Query parameter 'hours must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        since = timezone.now() - timedelta(hours=hours)
+
+        queryset = WeatherDataEntry.objects.filter(timestamp__gte=since)
+
+        if not queryset.exists():
+            return Response({
+                "detail": "There is no data available for the specified period."
+            })
+
+        stats = queryset.aggregate(
+            count=Count("id"),
+            avg_temperature=Avg("temperature"),
+            max_temperature=Max("temperature"),
+            min_temperature=Min("temperature"),
+
+            avg_humidity=Avg("humidity"),
+            max_humidity=Max("humidity"),
+            min_humidity=Min("humidity"),
+
+            avg_pressure=Avg("pressure"),
+            max_pressure=Max("pressure"),
+            min_pressure=Min("pressure"),
+        )
+
+        response_data = {
+            "period_hours": hours,
+            "count": stats["count"],
+
+            "temperature": {
+                "average": stats["avg_temperature"],
+                "maximum": stats["max_temperature"],
+                "minimum": stats["min_temperature"],
+            },
+
+            "humidity": {
+                "average": stats["avg_humidity"],
+                "maximum": stats["max_humidity"],
+                "minimum": stats["min_humidity"],
+            },
+
+            "pressure": {
+                "average": stats["avg_pressure"],
+                "maximum": stats["max_pressure"],
+                "minimum": stats["min_pressure"],
+            },
+        }
+
+        serializer = WeatherStatsSerializer(instance=response_data)
+        return Response(serializer.data)
+
+
+
