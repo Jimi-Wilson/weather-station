@@ -1,9 +1,0 @@
-asgiref @ file:///croot/asgiref_1724072470684/work
-Django @ file:///croot/django_1745263580040/work
-django-environ==0.12.0
-setuptools==78.1.1
-sqlparse @ file:///croot/sqlparse_1734704446487/work
-wheel==0.45.1
-
-django~=5.2
-djangorestframework~=3.16.0

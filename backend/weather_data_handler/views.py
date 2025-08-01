@@ -11,6 +11,8 @@ from .serializers import WeatherDataSerializer, WeatherStatsSerializer
 
 from datetime import datetime, timedelta
 
+from django.views.generic import ListView
+
 
 class WeatherDataViewSet(viewsets.ModelViewSet):
     queryset = WeatherDataEntry.objects.all()
@@ -132,6 +134,5 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
 
         serializer = WeatherStatsSerializer(instance=response_data)
         return Response(serializer.data)
-
 
 
