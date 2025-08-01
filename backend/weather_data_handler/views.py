@@ -4,7 +4,6 @@ from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from django.db.models import Avg, Max, Min, Count
 from rest_framework.response import Response
-from rest_framework_api_key.permissions import HasAPIKey
 
 from .models import WeatherDataEntry
 from .pagination import StandardResultsSetPagination
@@ -16,7 +15,6 @@ from datetime import datetime, timedelta
 class AddWeatherDataView(generics.CreateAPIView):
     queryset = WeatherDataEntry.objects.all()
     serializer_class = WeatherDataSerializer
-    permission_classes = [HasAPIKey]
 
 
 class GetLatestWeatherDataView(generics.RetrieveAPIView):

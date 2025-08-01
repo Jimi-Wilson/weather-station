@@ -3,6 +3,13 @@ import WeatherBlocks from "./WeatherBlocks.jsx";
 import axios from 'axios';
 import GraphSection from "./GraphSection.jsx";
 
+
+const apiKey = import.meta.env.VITE_API_KEY;
+
+if (apiKey) {
+    axios.defaults.headers.common['Authorization'] = `Api-Key ${apiKey}`;
+}
+
 const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
 function WeatherDisplay() {
