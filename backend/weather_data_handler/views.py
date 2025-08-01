@@ -1,4 +1,4 @@
-
+from django.http import Http404
 from rest_framework import viewsets, generics, status
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
@@ -11,8 +11,6 @@ from .serializers import WeatherDataSerializer, WeatherStatsSerializer
 
 from datetime import datetime, timedelta
 
-from django.views.generic import ListView
-
 
 class WeatherDataViewSet(viewsets.ModelViewSet):
     queryset = WeatherDataEntry.objects.all()
@@ -23,7 +21,10 @@ class GetLatestWeatherDataView(generics.RetrieveAPIView):
     serializer_class = WeatherDataSerializer
 
     def get_object(self):
-        return WeatherDataEntry.objects.latest("timestamp")
+        try:
+            return WeatherDataEntry.objects.latest("timestamp")
+        except WeatherDataEntry.DoesNotExist:
+            raise Http404
 
 
 class GetWeatherBetweenDates(generics.ListAPIView):
