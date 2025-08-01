@@ -1,52 +1,111 @@
 import {useState, useEffect} from "react";
 import WeatherBlocks from "./WeatherBlocks.jsx";
 import axios from 'axios';
+import GraphSection from "./GraphSection.jsx";
+
+const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
 function WeatherDisplay() {
-    const [weatherData, setWeatherData] = useState(null);
+
+    const [latestWeatherData, setLatestWeatherData] = useState(null);
+    const [historicalWeatherData, setHistoricalWeatherData] = useState(null);
+
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    
+    let period = 1;
 
-    const POLLING_INTERVAL = 2500;
+    const [startDate, setStartDate] = useState(() => {
+        const date = new Date();
+        date.setDate(date.getDate() - period);
+        return date;
+    });
+    const [endDate, setEndDate] = useState(new Date());
+
+    const POLLING_INTERVAL = 10000;
 
     useEffect(() => {
-
-        const fetchData = () => {
-            axios.get('http://127.0.0.1:8000/api/weatherdata/')
-                .then(function (response) {
-                    console.log(response.data);
-                    setWeatherData(response.data);
-                })
-
-                .catch(function (error) {
-                    console.log("An error occurred when trying to fetch weather data: " + error);
-                    setError(error);
-                })
-
-                .finally(function () {
-                    setIsLoading(false);
-                })
+        const fetchLatestData = async () => {
+            try {
+                const response = await axios.get(`/api/weather/latest/`);
+                setLatestWeatherData(response.data);
+            } catch (error) {
+                console.error('An error occurred when loading the latest' +
+                    ' weather data:' + error);
+            }
         }
 
-        fetchData();
+        fetchLatestData();
 
-        const interval = setInterval(fetchData, POLLING_INTERVAL);
-
+        const interval = setInterval(fetchLatestData, POLLING_INTERVAL);
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        const fetchHistoricalData = async () => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const response = await axios.get(`/api/weather/range?start_datetime=${startDate.toISOString()}&end_datetime=${endDate.toISOString()}`);
+                setHistoricalWeatherData(response.data);
+            } catch (error) {
+                console.error('An error occurred when loading the historical' +
+                    ' weather data:' + error);
+                setError(error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchHistoricalData();
+    }, [startDate, endDate])
+
+    useEffect(() => {
+        if (!latestWeatherData || !historicalWeatherData?.results || historicalWeatherData.results.length === 0) {
+            return;
+        }
+
+        const isViewingToday = getFormattedDate(endDate) === getFormattedDate(new Date());
+
+        if (isViewingToday) {
+           const lastTimestampInHistoricalData = new Date(historicalWeatherData.results[historicalWeatherData.results.length - 1].timestamp);
+           const latestTimestamp = new Date(latestWeatherData.timestamp);
+
+           if (latestTimestamp > lastTimestampInHistoricalData) {
+               setHistoricalWeatherData(prevData => ({
+                   ...prevData,
+                   results: [...prevData.results, latestWeatherData]
+               }));
+           }
+        }
+    }, [endDate, latestWeatherData])
+
+
+    const changePeriod = (period) => {
+        const newEndDate = new Date();
+        const newStartDate = new Date();
+
+        newStartDate.setDate(newStartDate.getDate() - period);
+        setStartDate(newStartDate);
+        setEndDate(newEndDate);
+    }
+
     if (isLoading) {
-        return <div>Loading...</div>
+        return;
     }
 
     if (error) {
         return <div>Error: {error.message}</div>
     }
 
+    console.log(historicalWeatherData);
 
     return (
         <div>
-            <WeatherBlocks weatherData={weatherData}/>
+
+            <WeatherBlocks latestWeatherData={latestWeatherData}/>
+            <GraphSection weatherData={historicalWeatherData.results} changePeriod={changePeriod}/>
         </div>
     )
 }
