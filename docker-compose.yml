@@ -1,0 +1,32 @@
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+
+    command: gunicorn --bind 0.0.0.0:8000 weather_station.wsgi:application
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - DJANGO_DEBUG=${DJANGO_DEBUG}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  cloudflare-ddns:
+    image: oznu/cloudflare-ddns:latest
+    restart: always
+    environment:
+      - API_KEY=${CLOUDFLARE_API_TOKEN}
+      - ZONE=${ROOT_DOMAIN}
+      - SUBDOMAIN=www
