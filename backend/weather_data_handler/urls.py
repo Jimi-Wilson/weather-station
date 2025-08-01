@@ -1,7 +1,12 @@
 from django.urls import path, include
-from .views import GetLatestWeatherDataView, GetWeatherBetweenDates, GetRecentWeatherDataView, GetWeatherDataStatsView
+from .views import GetLatestWeatherDataView, GetWeatherBetweenDates, GetRecentWeatherDataView, GetWeatherDataStatsView, \
+    AddWeatherDataView
 
 urlpatterns = [
+    path('add/',
+         AddWeatherDataView.as_view(),
+         name='add-weather-data'),
+
     path(
         'latest/',
         GetLatestWeatherDataView.as_view(),

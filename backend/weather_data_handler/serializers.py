@@ -5,8 +5,7 @@ from .models import WeatherDataEntry
 class WeatherDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeatherDataEntry
-        fields = '__all__'
-        read_only_fields = ('timestamp',)
+        fields = ['temperature', 'humidity', 'pressure']
 
 
 class WeatherStatsDetailSerializer(serializers.Serializer):

@@ -1,9 +1,10 @@
 from django.http import Http404
-from rest_framework import viewsets, generics, status
+from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from django.db.models import Avg, Max, Min, Count
 from rest_framework.response import Response
+from rest_framework_api_key.permissions import HasAPIKey
 
 from .models import WeatherDataEntry
 from .pagination import StandardResultsSetPagination
@@ -12,9 +13,10 @@ from .serializers import WeatherDataSerializer, WeatherStatsSerializer
 from datetime import datetime, timedelta
 
 
-class WeatherDataViewSet(viewsets.ModelViewSet):
+class AddWeatherDataView(generics.CreateAPIView):
     queryset = WeatherDataEntry.objects.all()
     serializer_class = WeatherDataSerializer
+    permission_classes = [HasAPIKey]
 
 
 class GetLatestWeatherDataView(generics.RetrieveAPIView):
