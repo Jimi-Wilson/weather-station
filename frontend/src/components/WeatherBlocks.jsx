@@ -3,6 +3,9 @@ import {Thermometer, Gauge, Droplets} from "lucide-react";
 
 function WeatherBlocks({latestWeatherData}){
 
+    if (!latestWeatherData) {
+        return;
+    }
     const timestamp = new Date(latestWeatherData.timestamp);
 
     return (
