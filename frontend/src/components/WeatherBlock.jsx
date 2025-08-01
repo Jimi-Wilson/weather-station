@@ -16,7 +16,7 @@ function WeatherBlock({type, value, icon: Icon}) {
                 <Icon className={`w-5 h-5 ${config.color}`}/>
                 <p className="capitalize">{type}</p>
             </div>
-            <p>{value} {config.unit}</p>
+            <p>{Math.round(value)} {config.unit}</p>
         </div>
     )
 }
