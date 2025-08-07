@@ -1,9 +1,15 @@
 export interface WeatherReading {
-    id: number;
     timestamp: string;
     temperature: number;
     humidity: number;
     pressure: number;
+}
+
+export interface PaginatedWeatherResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: WeatherReading[];
 }
 
 export interface MetricStats {
