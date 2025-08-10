@@ -7,13 +7,25 @@ export const weatherService = {
         return response.data;
     },
 
-    getRecentWeather: async (hours: number = 24): Promise<WeatherReading[]> => {
-        const response = await apiClient.get<PaginatedWeatherResponse>('/weather/recent', {
-            params: {
-                hours: hours
+    getRecentWeather: async (): Promise<WeatherReading[]> => {
+        const allResults: WeatherReading[] = [];
+        try {
+            let nextUrl: string | null = 'weather/recent/?hours=24';
+
+            while (nextUrl) {
+                const response = await apiClient.get<PaginatedWeatherResponse>(nextUrl, {});
+
+                if (response.data?.results) {
+                    allResults.push(...response.data.results);
+                }
+
+                nextUrl = response.data.next;
             }
-        });
-        return response.data;
+        } catch (error) {
+            console.error('Error fetching recent weather data:', error);
+        }
+
+        return allResults;
     },
 
     getHistoricalWeather: async (startDateTime: string, endDateTime: string): Promise<WeatherReading[]> => {
