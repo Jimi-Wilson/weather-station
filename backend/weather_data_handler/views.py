@@ -70,7 +70,7 @@ class GetRecentWeatherDataView(generics.ListAPIView):
             raise ValidationError({"detail": "hours cannot be greater than 7 days"})
 
         since = timezone.now() - timedelta(hours=hours)
-        return WeatherDataEntry.objects.filter(timestamp__gte=since).order_by("-timestamp")
+        return WeatherDataEntry.objects.filter(timestamp__gte=since).order_by("timestamp")
 
 
 class GetWeatherDataStatsView(generics.GenericAPIView):
