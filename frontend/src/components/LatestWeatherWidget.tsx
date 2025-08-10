@@ -58,12 +58,20 @@ const LatestWeatherWidget = () => {
 
 
     return (
+        <div>
+            <h2 className="text-2xl font-bold mb-4">Latest Weather Data</h2>
+            <p className="text-gray-600 mb-4">
+                Last Updated: {new Date(data.timestamp).toLocaleString()}
+            </p>
+
         <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard label="Temperature" value={data.temperature} unit="C" icon={<Thermometer />} change={changes.temperature} />
+            <MetricCard label="Temperature" value={data.temperature} unit="°C" icon={<Thermometer />} change={changes.temperature} />
             <MetricCard label="Humidity" value={data.humidity} unit="%" icon={<Droplets />} change={changes.humidity} />
             <MetricCard label="Pressure" value={data.pressure} unit="hPa"  icon={<Gauge />} change={changes.pressure}/>
 
+       </div>
         </div>
+
     );
 
 
