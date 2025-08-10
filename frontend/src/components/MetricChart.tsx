@@ -53,7 +53,7 @@ const ChartSkeleton = () => (
                 <div className="space-y-2">
                     <Skeleton className="h-[250px] w-full px-6" />
                 </div>
-            </div>1
+            </div>
         </CardContent>
     </Card>
 );
