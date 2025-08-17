@@ -4,8 +4,14 @@
 #include <Adafruit_BME280.h>
 #include "RTClib.h"
 
+RTC_DATA_ATTR int cycleCount = 0;
+
 RTC_DS3231 rtc;
 Adafruit_BME280 bme;
+
+void logSensorReadings();
+
+void uploadData();
 
 void setup()
 {
@@ -69,4 +75,64 @@ void setup()
       Serial.println("Failed to create datalog.csv");
     }
   }
+
+  esp_sleep_enable_timer_wakeup(150000000ULL);
+
+  if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_UNDEFINED)
+  {
+    logSensorReadings();
+  }
+
+  if (cycleCount >= 8)
+  {
+    uploadData();
+  }
+
+  Serial.println("Entering deep sleep...");
+  esp_deep_sleep_start();
 }
+
+void logSensorReadings()
+{
+  DateTime now = rtc.now();
+  float temperature = bme.readTemperature();
+  float humidity = bme.readHumidity();
+  float pressure = bme.readPressure() / 100.0f;
+
+  char datetime[32];
+  sprintf(datetime, "%04d-%02d-%02d %02d:%02d:%02d",
+          now.year(), now.month(), now.day(),
+          now.hour(), now.minute(), now.second());
+
+  Serial.print("Weather Reading at time: ");
+  Serial.println(datetime);
+
+  Serial.print("Temperature: ");
+  Serial.println(temperature);
+
+  Serial.print("Humidity: ");
+  Serial.println(humidity);
+
+  Serial.print("Pressure: ");
+  Serial.println(pressure);
+
+  File dataFile = SPIFFS.open("/datalog.csv", "a");
+  if (dataFile)
+  {
+    char csvLine[128];
+    sprintf(csvLine, "%ld,%.2f,%.2f,%.2f",
+            now.unixtime(), temperature, humidity, pressure);
+    dataFile.println(csvLine);
+    dataFile.close();
+
+    cycleCount = (cycleCount + 1) % 8;
+  }
+  else
+  {
+    Serial.println("Failed to open datalog.csv for appending");
+  }
+}
+
+void uploadData() {}
+
+void loop() {}
