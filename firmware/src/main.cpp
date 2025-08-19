@@ -86,6 +86,7 @@ void setup()
   if (cycleCount >= 8)
   {
     uploadData();
+    cycleCount = 0;
   }
 
   Serial.println("Entering deep sleep...");
@@ -125,7 +126,7 @@ void logSensorReadings()
     dataFile.println(csvLine);
     dataFile.close();
 
-    cycleCount = (cycleCount + 1) % 8;
+    cycleCount++;
   }
   else
   {
