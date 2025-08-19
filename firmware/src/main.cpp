@@ -6,6 +6,8 @@
 #include "driver/rtc_io.h"
 
 #define REED_SWITCH_PIN GPIO_NUM_33
+#define SLEEP_DURATION_BETWEEN_READINGS 150
+#define NUMBER_OF_READINGS_BEFORE_UPLOAD 8
 
 RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
@@ -85,14 +87,14 @@ void setup()
   handleWakeup();
 
   // When enough data has been recorded, upload data
-  if (cycleCount >= 8)
+  if (cycleCount >= NUMBER_OF_READINGS_BEFORE_UPLOAD)
   {
     uploadData();
     cycleCount = 0;
   }
 
   // Deep sleep configuration
-  esp_sleep_enable_timer_wakeup(150000000ULL);
+  esp_sleep_enable_timer_wakeup(SLEEP_DURATION_BETWEEN_READINGS * 1000000ULL);
 
   esp_sleep_enable_ext0_wakeup(REED_SWITCH_PIN, 0);
 
