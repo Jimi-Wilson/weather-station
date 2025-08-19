@@ -3,11 +3,17 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include "RTClib.h"
+#include "driver/rtc_io.h"
 
+#define REED_SWITCH_PIN GPIO_NUM_33
+
+RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
 
 RTC_DS3231 rtc;
 Adafruit_BME280 bme;
+
+void handleWakeup();
 
 void logSensorReadings();
 
@@ -76,21 +82,48 @@ void setup()
     }
   }
 
-  esp_sleep_enable_timer_wakeup(150000000ULL);
+  handleWakeup();
 
-  if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_UNDEFINED)
-  {
-    logSensorReadings();
-  }
-
+  // When enough data has been recorded, upload data
   if (cycleCount >= 8)
   {
     uploadData();
     cycleCount = 0;
   }
 
+  // Deep sleep configuration
+  esp_sleep_enable_timer_wakeup(150000000ULL);
+
+  esp_sleep_enable_ext0_wakeup(REED_SWITCH_PIN, 0);
+
+  gpio_pullup_en(REED_SWITCH_PIN);
+  gpio_pulldown_dis(REED_SWITCH_PIN);
+
   Serial.println("Entering deep sleep...");
+  Serial.flush();
   esp_deep_sleep_start();
+}
+
+void handleWakeup()
+{
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch (wakeup_reason)
+  {
+  case ESP_SLEEP_WAKEUP_EXT0:
+    Serial.println("Wakeup Reason: Bucket Tip Detected");
+    bucketTipCount++;
+    break;
+
+  case ESP_SLEEP_WAKEUP_TIMER:
+    Serial.println("Wakeup Reason: Timer, Taking Reading");
+    logSensorReadings();
+    break;
+
+  default:
+    Serial.println("Wakeup Reason: Power on / Reset");
+    break;
+  }
 }
 
 void logSensorReadings()
