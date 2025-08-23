@@ -6,6 +6,7 @@
 #include "driver/rtc_io.h"
 #include <ArduinoJson.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include "config.h"
 
 #define REED_SWITCH_PIN GPIO_NUM_33
@@ -14,6 +15,7 @@
 
 RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
+RTC_DATA_ATTR bool uploadPending = false;
 
 RTC_DS3231 rtc;
 Adafruit_BME280 bme;
@@ -22,8 +24,8 @@ void handleWakeup();
 void logSensorReadings();
 void setupDatalogFile();
 void parseDatalogFile(JsonDocument &doc);
-void uploadData();
-bool connectToWifi();
+bool uploadData();
+bool connectToWiFi();
 
 void setup()
 {
@@ -66,14 +68,22 @@ void setup()
   handleWakeup();
 
   // When enough data has been recorded, upload data
-  if (cycleCount >= NUMBER_OF_READINGS_BEFORE_UPLOAD)
+  if (cycleCount >= NUMBER_OF_READINGS_BEFORE_UPLOAD || uploadPending)
   {
-    uploadData();
-    cycleCount = 0;
+    if (uploadData())
+    {
+      cycleCount = 0;
+      bucketTipCount = 0;
+      uploadPending = false;
 
-    // Recreating datalog.csv file
-    LittleFS.remove("/datalog.csv");
-    setupDatalogFile();
+      // Recreating datalog.csv file
+      LittleFS.remove("/datalog.csv");
+      setupDatalogFile();
+    }
+    else
+    {
+      uploadPending = true;
+    }
   }
 
   // Deep sleep configuration
@@ -228,8 +238,57 @@ void parseDatalogFile(JsonDocument &doc)
   dataFile.close();
 }
 
-void uploadData()
+bool uploadData()
 {
+  JsonDocument doc;
+
+  if (!connectToWiFi())
+  {
+    Serial.println("Unable to connect to WiFi");
+    return false;
+  }
+
+  parseDatalogFile(doc);
+
+  doc["bucket_tips"] = bucketTipCount;
+
+  String jsonPayload;
+  serializeJson(doc, jsonPayload);
+
+  Serial.println("Uploading data...");
+  Serial.println(jsonPayload);
+
+  // Setting up http request
+  HTTPClient http;
+  http.begin(API_ENDPOINT);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Api-Key", API_KEY);
+  int httpResponseCode = http.POST(jsonPayload);
+
+  // Handle http response
+  if (httpResponseCode > 0)
+  {
+    Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    String responsePayload = http.getString();
+    Serial.println(responsePayload);
+  }
+  else
+  {
+    Serial.printf("Error code: %d\n", httpResponseCode);
+  }
+
+  http.end();
+  WiFi.disconnect(true);
+  Serial.println("WiFi disconnected.");
+
+  if (httpResponseCode >= 200 && httpResponseCode < 300)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 bool connectToWiFi()
