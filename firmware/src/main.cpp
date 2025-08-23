@@ -188,7 +188,7 @@ void parseDatalogFile(JsonDocument &doc)
     return;
   }
 
-  JsonArray data = doc["data"].to<JsonArray>();
+  JsonArray readings = doc["readings"].to<JsonArray>();
 
   // Skipping headers
   if (dataFile.available())
@@ -200,19 +200,27 @@ void parseDatalogFile(JsonDocument &doc)
   while (dataFile.available())
   {
     String line = dataFile.readStringUntil('\n');
+    line.trim();
 
-    JsonArray row = data.add<JsonArray>();
+    if (line.length() == 0)
+      continue;
 
-    // Parsing lines for values
-    int valueStartIndex = 0;
-    int valueEndIndex = 0;
-    while (valueEndIndex = line.indexOf(",", valueStartIndex) >= 0)
-    {
-      String value = line.substring(valueStartIndex, valueEndIndex);
-      row.add(value.toFloat());
-      valueStartIndex = valueEndIndex + 1;
-    }
-    row.add(line.substring(valueStartIndex).toFloat());
+    JsonObject reading = readings.add<JsonObject>();
+
+    int indexOfFirstComma = line.indexOf(',');
+    int indexOfSeccondComma = line.indexOf(',', indexOfFirstComma + 1);
+    int indexOfThirdComma = line.indexOf(',', indexOfSeccondComma + 1);
+
+    String timeString = line.substring(0, indexOfFirstComma);
+    String temperatureString = line.substring(indexOfFirstComma + 1, indexOfSeccondComma);
+    String humidtyString = line.substring(indexOfSeccondComma + 1, indexOfThirdComma);
+    String pressureString = line.substring(indexOfSeccondComma + 1);
+
+    // Adding reading to JSON
+    reading["timestamp"] = atol(timeString.c_str());
+    reading["temperature"] = temperatureString.toFloat();
+    reading["humidity"] = humidtyString.toFloat();
+    reading["pressure"] = pressureString.toFloat();
   }
   dataFile.close();
 }
