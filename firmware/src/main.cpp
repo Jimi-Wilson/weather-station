@@ -5,6 +5,8 @@
 #include "RTClib.h"
 #include "driver/rtc_io.h"
 #include <ArduinoJson.h>
+#include <WiFi.h>
+#include "config.h"
 
 #define REED_SWITCH_PIN GPIO_NUM_33
 #define SLEEP_DURATION_BETWEEN_READINGS 150
@@ -21,6 +23,7 @@ void logSensorReadings();
 void setupDatalogFile();
 void parseDatalogFile(JsonDocument &doc);
 void uploadData();
+bool connectToWifi();
 
 void setup()
 {
@@ -227,6 +230,28 @@ void parseDatalogFile(JsonDocument &doc)
 
 void uploadData()
 {
+}
+
+bool connectToWiFi()
+{
+  Serial.print("Connecting to WiFi...");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  int timeoutCounter = 0;
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.println(".");
+    timeoutCounter++;
+    if (timeoutCounter > 30)
+    {
+      Serial.println("\nConnection timed out");
+      return false;
+    }
+  }
+  Serial.println("\nConnected to WiFi");
+  return true;
 }
 
 void loop() {}
