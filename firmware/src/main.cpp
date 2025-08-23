@@ -11,7 +11,8 @@
 
 #define REED_SWITCH_PIN GPIO_NUM_33
 #define SLEEP_DURATION_BETWEEN_READINGS 150
-#define NUMBER_OF_READINGS_BEFORE_UPLOAD 8
+#define DAY_READINGS_THRESHOLD 8
+#define NIGHT_READINGS_THRESHOLD 24
 
 RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
@@ -67,8 +68,22 @@ void setup()
 
   handleWakeup();
 
+  DateTime now = rtc.now();
+  int currentHour = now.hour();
+  bool isNightTime = (currentHour >= 22 || currentHour < 6);
+
+  int uploadThreshold;
+  if (isNightTime)
+  {
+    uploadThreshold = NIGHT_READINGS_THRESHOLD;
+  }
+  else
+  {
+    uploadThreshold = DAY_READINGS_THRESHOLD;
+  }
+
   // When enough data has been recorded, upload data
-  if (cycleCount >= NUMBER_OF_READINGS_BEFORE_UPLOAD || uploadPending)
+  if (cycleCount >= uploadThreshold || uploadPending)
   {
     if (uploadData())
     {
