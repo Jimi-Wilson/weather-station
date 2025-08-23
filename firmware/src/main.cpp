@@ -129,7 +129,7 @@ void logSensorReadings()
   Serial.print("Pressure: ");
   Serial.println(pressure);
 
-  File dataFile = SPIFFS.open("/datalog.csv", "a");
+  File dataFile = LittleFS.open("/datalog.csv", "a");
   if (dataFile)
   {
     char csvLine[128];
