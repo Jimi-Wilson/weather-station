@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include "RTClib.h"
@@ -18,6 +18,8 @@ Adafruit_BME280 bme;
 void handleWakeup();
 
 void logSensorReadings();
+
+void setupDatalogFile();
 
 void uploadData();
 
@@ -57,32 +59,7 @@ void setup()
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 
-  // Starting storage for logs
-  if (!SPIFFS.begin(true))
-  {
-    Serial.println("An error occurred while mounting SPIFFS");
-    return;
-  }
-  else
-  {
-    Serial.println("SPIFFS mounted successfully.");
-  }
-
-  // Creating datalog.csv file with headers if it doesn't already exist
-  if (!SPIFFS.exists("/datalog.csv"))
-  {
-    File dataFile = SPIFFS.open("/datalog.csv", "a");
-    if (dataFile)
-    {
-      dataFile.println("timestamp,temperature,humidity,pressure");
-      dataFile.close();
-      Serial.println("Created datalog.csv with headers");
-    }
-    else
-    {
-      Serial.println("Failed to create datalog.csv");
-    }
-  }
+  setupDataFile();
 
   handleWakeup();
 
@@ -169,6 +146,39 @@ void logSensorReadings()
   }
 }
 
-void uploadData() {}
+void setupDataFile()
+{
+  // Starting storage for logs
+  if (!LittleFS.begin(true))
+  {
+    Serial.println("An error occurred while mounting LittleFS");
+    return;
+  }
+  else
+  {
+    Serial.println("LittleFS mounted successfully.");
+  }
+
+  // Creating datalog.csv file with headers if it doesn't already exist
+  if (!LittleFS.exists("/datalog.csv"))
+  {
+    File dataFile = LittleFS.open("/datalog.csv", "a");
+    if (dataFile)
+    {
+      dataFile.println("timestamp,temperature,humidity,pressure");
+      dataFile.close();
+      Serial.println("Created datalog.csv with headers");
+    }
+    else
+    {
+      Serial.println("Failed to create datalog.csv");
+    }
+  }
+}
+
+void uploadData()
+{
+
+}
 
 void loop() {}
