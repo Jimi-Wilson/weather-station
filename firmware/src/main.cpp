@@ -67,6 +67,10 @@ void setup()
   {
     uploadData();
     cycleCount = 0;
+
+    // Recreating datalog.csv file
+    LittleFS.remove("/datalog.csv");
+    setupDatalogFile();
   }
 
   // Deep sleep configuration
