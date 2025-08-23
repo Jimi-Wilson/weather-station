@@ -217,7 +217,7 @@ void parseDatalogFile(JsonDocument &doc)
     String timeString = line.substring(0, indexOfFirstComma);
     String temperatureString = line.substring(indexOfFirstComma + 1, indexOfSeccondComma);
     String humidtyString = line.substring(indexOfSeccondComma + 1, indexOfThirdComma);
-    String pressureString = line.substring(indexOfSeccondComma + 1);
+    String pressureString = line.substring(indexOfThirdComma + 1);
 
     // Adding reading to JSON
     reading["timestamp"] = atol(timeString.c_str());
