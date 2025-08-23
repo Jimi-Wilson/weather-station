@@ -59,7 +59,7 @@ void setup()
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 
-  setupDataFile();
+  setupDatalogFile();
 
   handleWakeup();
 
@@ -146,7 +146,7 @@ void logSensorReadings()
   }
 }
 
-void setupDataFile()
+void setupDatalogFile()
 {
   // Starting storage for logs
   if (!LittleFS.begin(true))
