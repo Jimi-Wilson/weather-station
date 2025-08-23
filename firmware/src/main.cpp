@@ -4,6 +4,7 @@
 #include <Adafruit_BME280.h>
 #include "RTClib.h"
 #include "driver/rtc_io.h"
+#include <ArduinoJson.h>
 
 #define REED_SWITCH_PIN GPIO_NUM_33
 #define SLEEP_DURATION_BETWEEN_READINGS 150
@@ -16,11 +17,9 @@ RTC_DS3231 rtc;
 Adafruit_BME280 bme;
 
 void handleWakeup();
-
 void logSensorReadings();
-
 void setupDatalogFile();
-
+void parseDatalogFile(JsonDocument &doc);
 void uploadData();
 
 void setup()
@@ -176,9 +175,46 @@ void setupDatalogFile()
   }
 }
 
+void parseDatalogFile(JsonDocument &doc)
+{
+  File dataFile = LittleFS.open("/datalog.csv", "r");
+  if (!dataFile)
+  {
+    Serial.println("Failed to open datalog for reading");
+    return;
+  }
+
+  JsonArray data = doc["data"].to<JsonArray>();
+
+  // Skipping headers
+  if (dataFile.available())
+  {
+    dataFile.readStringUntil('\n');
+  }
+
+  // Parsing csv for lines
+  while (dataFile.available())
+  {
+    String line = dataFile.readStringUntil('\n');
+
+    JsonArray row = data.add<JsonArray>();
+
+    // Parsing lines for values
+    int valueStartIndex = 0;
+    int valueEndIndex = 0;
+    while (valueEndIndex = line.indexOf(",", valueStartIndex) >= 0)
+    {
+      String value = line.substring(valueStartIndex, valueEndIndex);
+      row.add(value.toFloat());
+      valueStartIndex = valueEndIndex + 1;
+    }
+    row.add(line.substring(valueStartIndex).toFloat());
+  }
+  dataFile.close();
+}
+
 void uploadData()
 {
-
 }
 
 void loop() {}
