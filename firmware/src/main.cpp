@@ -17,11 +17,12 @@
 RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
 RTC_DATA_ATTR bool uploadPending = false;
+RTC_DATA_ATTR uint32_t nextScheduledReading = 0;
 
 RTC_DS3231 rtc;
 Adafruit_BME280 bme;
 
-void handleWakeup();
+void handleWakeup(esp_sleep_wakeup_cause_t reason);
 void logSensorReadings();
 void setupDatalogFile();
 void parseDatalogFile(JsonDocument &doc);
@@ -66,46 +67,60 @@ void setup()
 
   setupDatalogFile();
 
-  handleWakeup();
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
 
+  handleWakeup(wakeup_reason);
+
+  uint64_t sleepDuration = SLEEP_DURATION_BETWEEN_READINGS;
   DateTime now = rtc.now();
-  int currentHour = now.hour();
-  bool isNightTime = (currentHour >= 22 || currentHour < 6);
 
-  int uploadThreshold;
-  if (isNightTime)
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
   {
-    uploadThreshold = NIGHT_READINGS_THRESHOLD;
-  }
-  else
-  {
-    uploadThreshold = DAY_READINGS_THRESHOLD;
-  }
-
-  // When enough data has been recorded, upload data
-  if (cycleCount >= uploadThreshold || uploadPending)
-  {
-    if (uploadData())
+    if (nextScheduledReading > now.unixtime())
     {
-      cycleCount = 0;
-      bucketTipCount = 0;
-      uploadPending = false;
-
-      // Recreating datalog.csv file
-      LittleFS.remove("/datalog.csv");
-      setupDatalogFile();
+      sleepDuration = nextScheduledReading - now.unixtime();
     }
     else
     {
-      uploadPending = true;
+      wakeup_reason = ESP_SLEEP_WAKEUP_TIMER;
+    }
+  }
+
+  if (wakeup_reason != ESP_SLEEP_WAKEUP_EXT0)
+  {
+    logSensorReadings();
+
+    nextScheduledReading = rtc.now().unixtime() + SLEEP_DURATION_BETWEEN_READINGS;
+
+    int currentHour = now.hour();
+    bool isNightTime = (currentHour >= 22 || currentHour < 6);
+    int uploadThreshold = isNightTime ? NIGHT_READINGS_THRESHOLD : DAY_READINGS_THRESHOLD;
+
+    if (cycleCount >= uploadThreshold || uploadPending)
+    {
+      if (uploadData())
+      {
+        cycleCount = 0;
+        bucketTipCount = 0;
+        uploadPending = false;
+        LittleFS.remove("/datalog.csv");
+        setupDatalogFile();
+      }
+      else
+      {
+        uploadPending = true;
+      }
     }
   }
 
   // Deep sleep configuration
-  esp_sleep_enable_timer_wakeup(SLEEP_DURATION_BETWEEN_READINGS * 1000000ULL);
+  if (sleepDuration < 2)
+  {
+    sleepDuration = 2;
+  }
 
+  esp_sleep_enable_timer_wakeup(sleepDuration * 1000000ULL);
   esp_sleep_enable_ext0_wakeup(REED_SWITCH_PIN, 0);
-
   gpio_pullup_en(REED_SWITCH_PIN);
   gpio_pulldown_dis(REED_SWITCH_PIN);
 
@@ -114,11 +129,10 @@ void setup()
   esp_deep_sleep_start();
 }
 
-void handleWakeup()
+void handleWakeup(esp_sleep_wakeup_cause_t reason)
 {
-  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
 
-  switch (wakeup_reason)
+  switch (reason)
   {
   case ESP_SLEEP_WAKEUP_EXT0:
     Serial.println("Wakeup Reason: Bucket Tip Detected");
@@ -127,7 +141,6 @@ void handleWakeup()
 
   case ESP_SLEEP_WAKEUP_TIMER:
     Serial.println("Wakeup Reason: Timer, Taking Reading");
-    logSensorReadings();
     break;
 
   default:
