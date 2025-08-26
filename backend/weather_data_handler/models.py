@@ -1,4 +1,5 @@
 from django.db import models
+from rest_framework_api_key.models import AbstractAPIKey
 
 
 class WeatherStation(models.Model):
@@ -6,6 +7,14 @@ class WeatherStation(models.Model):
     name = models.CharField(max_length=200)
     rainfall_calibration_factor = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class WeatherStationAPIKey(AbstractAPIKey):
+    station = models.ForeignKey(WeatherStation, on_delete=models.CASCADE, related_name='api_keys')
+
+    class Meta(AbstractAPIKey.Meta):
+        verbose_name = "Weather Station API Key"
+        verbose_name_plural = "Weather Station API Keys"
 
 
 class UploadBatch(models.Model):

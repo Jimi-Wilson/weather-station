@@ -143,11 +143,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework_api_key.permissions.HasAPIKey',
+        'weather_data_handler.permissions.HasWeatherStationAPIKey',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
+
+API_KEY_CUSTOM_MODEL = "weather_data_handler.WeatherStationAPIKey"
 
 LOGGING = {
     'version': 1,
