@@ -6,6 +6,13 @@ class WeatherStation(models.Model):
     name = models.CharField(max_length=200)
     rainfall_calibration_factor = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class UploadBatch(models.Model):
+    station = models.ForeignKey(WeatherStation, on_delete=models.CASCADE, related_name='batches')
+    bucket_tips = models.PositiveIntegerField()
+    rainfall_mm = models.FloatField(blank=True)  # rainfall per hour
+    created_at = models.DateTimeField(auto_now_add=True)
 class WeatherDataEntry(models.Model):
     temperature = models.FloatField()
     humidity = models.FloatField()
