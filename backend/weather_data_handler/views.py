@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db.models import Avg, Max, Min, Count
 from rest_framework.response import Response
 
-from .models import WeatherDataEntry
+from .models import Reading
 from .pagination import StandardResultsSetPagination
 from .serializers import WeatherDataSerializer, WeatherStatsSerializer
 
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 
 class AddWeatherDataView(generics.CreateAPIView):
-    queryset = WeatherDataEntry.objects.all()
+    queryset = Reading.objects.all()
     serializer_class = WeatherDataSerializer
 
 
@@ -22,8 +22,8 @@ class GetLatestWeatherDataView(generics.RetrieveAPIView):
 
     def get_object(self):
         try:
-            return WeatherDataEntry.objects.latest("timestamp")
-        except WeatherDataEntry.DoesNotExist:
+            return Reading.objects.latest("timestamp")
+        except Reading.DoesNotExist:
             raise Http404
 
 
@@ -32,7 +32,7 @@ class GetWeatherBetweenDates(generics.ListAPIView):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        queryset = WeatherDataEntry.objects.all()
+        queryset = Reading.objects.all()
 
         start_datetime_str = self.request.query_params.get("start_datetime")
         end_datetime_str = self.request.query_params.get("end_datetime")
@@ -70,7 +70,7 @@ class GetRecentWeatherDataView(generics.ListAPIView):
             raise ValidationError({"detail": "hours cannot be greater than 7 days"})
 
         since = timezone.now() - timedelta(hours=hours)
-        return WeatherDataEntry.objects.filter(timestamp__gte=since).order_by("timestamp")
+        return Reading.objects.filter(timestamp__gte=since).order_by("timestamp")
 
 
 class GetWeatherDataStatsView(generics.GenericAPIView):
@@ -88,7 +88,7 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
 
         since = timezone.now() - timedelta(hours=hours)
 
-        queryset = WeatherDataEntry.objects.filter(timestamp__gte=since)
+        queryset = Reading.objects.filter(timestamp__gte=since)
 
         if not queryset.exists():
             return Response({

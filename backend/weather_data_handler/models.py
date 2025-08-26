@@ -13,11 +13,14 @@ class UploadBatch(models.Model):
     bucket_tips = models.PositiveIntegerField()
     rainfall_mm = models.FloatField(blank=True)  # rainfall per hour
     created_at = models.DateTimeField(auto_now_add=True)
-class WeatherDataEntry(models.Model):
+
+
+class Reading(models.Model):
+    batch = models.ForeignKey(UploadBatch, on_delete=models.CASCADE, related_name='readings')
+    timestamp = models.DateTimeField(db_index=True, )
     temperature = models.FloatField()
     humidity = models.FloatField()
     pressure = models.FloatField()
-    timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-timestamp']
@@ -26,4 +29,4 @@ class WeatherDataEntry(models.Model):
         ]
 
     def __str__(self):
-        return f"Weather Data for at {self.timestamp}"
+        return f"Weather reading {self.batch.station.name} for at {self.timestamp}"

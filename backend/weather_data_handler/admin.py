@@ -1,8 +1,8 @@
 from django.contrib import admin
 
-from .models import WeatherDataEntry
+from .models import Reading
 
 
-@admin.register(WeatherDataEntry)
+@admin.register(Reading)
 class WeatherStationAdmin(admin.ModelAdmin):
     pass

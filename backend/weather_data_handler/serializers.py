@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from .models import WeatherDataEntry
+from .models import Reading
 
 
 class WeatherDataSerializer(serializers.ModelSerializer):
     class Meta:
-        model = WeatherDataEntry
+        model = Reading
         fields = ['temperature', 'humidity', 'pressure', 'timestamp']
 
 
