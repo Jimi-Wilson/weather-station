@@ -7,18 +7,18 @@ from rest_framework.response import Response
 
 from .models import Reading
 from .pagination import StandardResultsSetPagination
-from .serializers import WeatherDataSerializer, WeatherStatsSerializer
+from .serializers import ReadingSerializer, WeatherStatsSerializer
 
 from datetime import datetime, timedelta
 
 
 class AddWeatherDataView(generics.CreateAPIView):
     queryset = Reading.objects.all()
-    serializer_class = WeatherDataSerializer
+    serializer_class = ReadingSerializer
 
 
 class GetLatestWeatherDataView(generics.RetrieveAPIView):
-    serializer_class = WeatherDataSerializer
+    serializer_class = ReadingSerializer
 
     def get_object(self):
         try:
@@ -28,7 +28,7 @@ class GetLatestWeatherDataView(generics.RetrieveAPIView):
 
 
 class GetWeatherBetweenDates(generics.ListAPIView):
-    serializer_class = WeatherDataSerializer
+    serializer_class = ReadingSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
@@ -53,7 +53,7 @@ class GetWeatherBetweenDates(generics.ListAPIView):
 
 
 class GetRecentWeatherDataView(generics.ListAPIView):
-    serializer_class = WeatherDataSerializer
+    serializer_class = ReadingSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
