@@ -10,9 +10,8 @@ class _UploadReadingSerializer(serializers.Serializer):
 
 
 class WeatherUploadSerializer(serializers.Serializer):
-    device_id = serializers.CharField(max_length=100, unique=True)
+    device_id = serializers.CharField(max_length=100)
     bucket_tips = serializers.IntegerField(min_value=0)
-
     readings = _UploadReadingSerializer(many=True)
 
 
