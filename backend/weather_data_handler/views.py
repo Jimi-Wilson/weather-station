@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from django.db.models import Avg, Max, Min, Count
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils import timezone as dtz
 
 from .models import Reading, UploadBatch
 from .pagination import StandardResultsSetPagination
@@ -104,7 +105,7 @@ class GetRecentWeatherDataView(generics.ListAPIView):
         if hours > 7 * 24:
             raise ValidationError({"detail": "hours cannot be greater than 7 days"})
 
-        since = timezone.now() - timedelta(hours=hours)
+        since = dtz.now() - timedelta(hours=hours)
         return Reading.objects.filter(timestamp__gte=since).order_by("timestamp")
 
 
@@ -121,7 +122,7 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        since = timezone.now() - timedelta(hours=hours)
+        since = dtz.now() - timedelta(hours=hours)
 
         queryset = Reading.objects.filter(timestamp__gte=since)
 
