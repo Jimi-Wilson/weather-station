@@ -26,7 +26,7 @@ class UploadBatch(models.Model):
 
 class Reading(models.Model):
     batch = models.ForeignKey(UploadBatch, on_delete=models.CASCADE, related_name='readings')
-    timestamp = models.DateTimeField(db_index=True, )
+    timestamp = models.DateTimeField(db_index=True)
     temperature = models.FloatField()
     humidity = models.FloatField()
     pressure = models.FloatField()
