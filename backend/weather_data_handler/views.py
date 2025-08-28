@@ -1,20 +1,55 @@
 from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
-from django.utils import timezone
 from django.db.models import Avg, Max, Min, Count
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Reading
+from .models import Reading, UploadBatch
 from .pagination import StandardResultsSetPagination
-from .serializers import ReadingSerializer, WeatherStatsSerializer
+from .permissions import HasWeatherStationAPIKey
+from .serializers import ReadingSerializer, WeatherStatsSerializer, WeatherUploadSerializer
+from .utils import get_weather_station_from_request
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
-class AddWeatherDataView(generics.CreateAPIView):
-    queryset = Reading.objects.all()
-    serializer_class = ReadingSerializer
+class AddWeatherDataView(APIView):
+    permission_classes = [HasWeatherStationAPIKey]
+
+    def post(self, request):
+        serializer = WeatherUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        authenticated_station = get_weather_station_from_request(request)
+        validated_data = serializer.validated_data
+
+        if authenticated_station.device_id != validated_data['device_id']:
+            return Response({"error": "Payload device_id does not match authenticated station."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        batch = UploadBatch.objects.create(
+            station=authenticated_station,
+            bucket_tips=validated_data['bucket_tips'],
+            rainfall_mm=validated_data['bucket_tips'] * authenticated_station.rainfall_calibration_factor,
+        )
+
+        readings_to_create = []
+        for reading_data in validated_data['readings']:
+            timestamp = datetime.fromtimestamp(reading_data['timestamp'], tz=timezone.utc)
+            readings_to_create.append(Reading(
+                batch=batch,
+                timestamp=timestamp,
+                temperature=reading_data['temperature'],
+                humidity=reading_data['humidity'],
+                pressure=reading_data['pressure'],
+            ))
+
+        if readings_to_create:
+            Reading.objects.bulk_create(readings_to_create)
+
+        return Response({"status": "success"}, status=status.HTTP_201_CREATED)
 
 
 class GetLatestWeatherDataView(generics.RetrieveAPIView):
@@ -135,5 +170,3 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
 
         serializer = WeatherStatsSerializer(instance=response_data)
         return Response(serializer.data)
-
-
