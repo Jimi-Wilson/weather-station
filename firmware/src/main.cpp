@@ -290,7 +290,7 @@ bool uploadData()
   HTTPClient http;
   http.begin(API_ENDPOINT);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("Api-Key", API_KEY);
+  http.addHeader("Authorization", String("Api-Key ") + API_KEY);
   int httpResponseCode = http.POST(jsonPayload);
 
   // Handle http response
