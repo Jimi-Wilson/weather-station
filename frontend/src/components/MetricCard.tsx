@@ -26,10 +26,10 @@ const cardStyles = {
     }
 }
 
-
+type CardStyleKey = keyof typeof cardStyles;
 
 const MetricCard = ({ label, value, unit, icon, change}: MetricCardProps) => {
-    const cardStyle = cardStyles[label.toLowerCase()];
+    const cardStyle = cardStyles[label.toLowerCase() as CardStyleKey];
 
 
     return (

@@ -78,7 +78,7 @@ const MetricChart = ({metric, data, isLoading}: MetricChartProps) => {
                 <CardDescription>{chartConfig.label} over the last 24 hours.</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={chartConfig} className={"h-[250px] w-full"}>
+                <ChartContainer config={metricChartConfigurations} className={"h-[250px] w-full"}>
                     <LineChart
                         accessibilityLayer
                         data={data}

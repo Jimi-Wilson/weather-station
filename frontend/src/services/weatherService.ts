@@ -1,5 +1,6 @@
 import {apiClient} from "@/services/api.ts";
 import type {PaginatedWeatherResponse, WeatherReading, WeatherStats} from "@/services/types.ts";
+import type { AxiosResponse } from 'axios';
 
 export const weatherService = {
     getLatestWeather: async (): Promise<WeatherReading> => {
@@ -13,7 +14,7 @@ export const weatherService = {
             let nextUrl: string | null = 'weather/recent/?hours=24';
 
             while (nextUrl) {
-                const response = await apiClient.get<PaginatedWeatherResponse>(nextUrl, {});
+                const response: AxiosResponse<PaginatedWeatherResponse> = await apiClient.get(nextUrl);
 
                 if (response.data?.results) {
                     allResults.push(...response.data.results);
@@ -35,7 +36,7 @@ export const weatherService = {
                 end_datetime: endDateTime
             }
         });
-        return response.data;
+        return response.data.results;
     },
 
     getWeatherDataStats: async (hours: number = 24): Promise<WeatherStats> => {
