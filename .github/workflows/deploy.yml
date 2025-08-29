@@ -18,13 +18,13 @@ jobs:
         run: echo "${{ secrets.DOT_ENV }}" > .env
         
       - name: Pull latest Docker images
-        run: docker-compose pull
+        run: docker compose pull
 
       - name: Build and Deploy
-        run: docker-compose up -d --build --force-recreate
+        run: docker compose up -d --build --force-recreate
 
       - name: Run Django Migrations
-        run: docker-compose run --rm backend python manage.py migrate --noinput
+        run: docker compose run --rm backend python manage.py migrate --noinput
         
       - name: Prune old Docker images
         run: docker image prune -f
