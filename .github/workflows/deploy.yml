@@ -28,3 +28,9 @@ jobs:
         
       - name: Prune old Docker images
         run: docker image prune -f
+
+      - name: Clean up workspace permissions
+        if: always()
+        run: sudo chown -R jw:jw .
+
+  
