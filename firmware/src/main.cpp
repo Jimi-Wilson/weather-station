@@ -278,6 +278,8 @@ bool uploadData()
 
   parseDatalogFile(doc);
 
+  doc["device_id"] = DEVICE_ID;
+
   doc["bucket_tips"] = bucketTipCount;
 
   String jsonPayload;
