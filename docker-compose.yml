@@ -1,47 +1,47 @@
+networks:
+  web_gateway:
+    external: true
+  internal:
+
 services:
-  backend:
+  weather_backend:
     build: ./backend
-    container_name: django_backend
+    container_name: weather_django_backend
+    restart: always
     command: gunicorn weather_station.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - static_volume:/app/static
-    expose:
-      - 8000
+      - ./backend/static_volume_data:/app/static
     env_file:
       - ./.env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - web_gateway
+      - internal
 
-  frontend:
+  weather_frontend:
     build: ./frontend
-    container_name: react_frontend
-    expose:
-      - 80
+    container_name: weather_react_frontend
+    restart: always
+    networks:
+      - web_gateway
 
   db:
     image: postgres:15-alpine
-    container_name: postgres_db
+    container_name: weather_postgres_db
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env
-
-  proxy:
-    build: ./proxy
-    container_name: nginx_proxy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - static_volume:/app/static
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/lib/certbot:/var/lib/certbot:ro
-      - ./data/certbot/www:/var/www/certbot
-    depends_on:
-      - backend
-      - frontend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
 
 volumes:
   postgres_data:
-  static_volume:
