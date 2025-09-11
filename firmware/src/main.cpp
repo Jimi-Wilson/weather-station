@@ -8,6 +8,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include "config.h"
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 #define REED_SWITCH_PIN GPIO_NUM_33
 #define SLEEP_DURATION_BETWEEN_READINGS 150
@@ -22,12 +24,16 @@ RTC_DATA_ATTR uint32_t nextScheduledReading = 0;
 RTC_DS3231 rtc;
 Adafruit_BME280 bme;
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0);
+
 void handleWakeup(esp_sleep_wakeup_cause_t reason);
 void logSensorReadings();
 void setupDatalogFile();
 void parseDatalogFile(JsonDocument &doc);
 bool uploadData();
 bool connectToWiFi();
+void syncTimeFromNTP();
 
 void setup()
 {
@@ -62,7 +68,7 @@ void setup()
   if (rtc.lostPower())
   {
     Serial.println("RTC lost power, resetting time");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    syncTimeFromNTP();
   }
 
   setupDatalogFile();
@@ -301,6 +307,9 @@ bool uploadData()
     Serial.printf("HTTP Response code: %d\n", httpResponseCode);
     String responsePayload = http.getString();
     Serial.println(responsePayload);
+
+    Serial.println("Data upload successful. Re-syncing RTC time...");
+    syncTimeFromNTP();
   }
   else
   {
@@ -341,6 +350,57 @@ bool connectToWiFi()
   }
   Serial.println("\nConnected to WiFi");
   return true;
+}
+
+void syncTimeFromNTP()
+{
+  Serial.println("Attempting to sync RTC with NTP server...");
+  bool wifiWasOff = (WiFi.status() != WL_CONNECTED);
+  if (wifiWasOff)
+  {
+    if (!connectToWiFi())
+    {
+      Serial.println("Cannot sync time, WiFi connection failed.");
+      return;
+    }
+  }
+  else
+  {
+    Serial.println("WiFi already connected, proceeding with time sync.");
+  }
+
+  timeClient.begin();
+  Serial.println("Updating time from NTP server...");
+  if (timeClient.forceUpdate())
+  {
+    unsigned long epochTime = timeClient.getEpochTime();
+    rtc.adjust(DateTime(epochTime));
+
+    DateTime now = rtc.now();
+    Serial.print("RTC time successfully synced to (UTC): ");
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(" ");
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.println(now.second(), DEC);
+  }
+  else
+  {
+    Serial.println("Failed to get time from NTP server.");
+  }
+
+  if (wifiWasOff)
+  {
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    Serial.println("WiFi disconnected after time sync.");
+  }
 }
 
 void loop() {}
