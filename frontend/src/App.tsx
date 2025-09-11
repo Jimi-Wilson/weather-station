@@ -4,9 +4,9 @@ import { Navbar } from "@/components/Navbar.tsx";
 
 function App() {
     return (
-        <div>
+        <div className="pl-5 pr-5">
             <Navbar />
-            <main className="container mx-auto pb-4">
+            <main className="container mx-auto pb-5 pt-5" >
                 <div className="flex flex-col gap-4">
                     <LatestWeatherWidget />
                     <WeatherChartsWidget />
