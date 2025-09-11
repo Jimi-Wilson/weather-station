@@ -6,7 +6,7 @@ function App() {
     return (
         <div>
             <Navbar />
-            <main className="container mx-auto p-4">
+            <main className="container mx-auto pb-4">
                 <div className="flex flex-col gap-4">
                     <LatestWeatherWidget />
                     <WeatherChartsWidget />

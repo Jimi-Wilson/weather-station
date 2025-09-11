@@ -27,7 +27,6 @@ const WeatherChartsWidget = () => {
             <div className="mt-4">
                 <h2 className="text-2xl font-bold mb-4">Weather Charts</h2>
                 <div className={"flex flex-col gap-4"}>
-                    {/* You can use your cool skeleton loaders here! */}
                     <MetricChart metric="temperature" isLoading={true} data={[]} />
                     <MetricChart metric="humidity" isLoading={true} data={[]} />
                     <MetricChart metric="pressure" isLoading={true} data={[]} />

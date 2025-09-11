@@ -59,8 +59,8 @@ const LatestWeatherWidget = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-4">Latest Weather Data</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-4">
+            <h2 className="text-2xl font-bold mb-2">Latest Weather Data</h2>
+            <p className="text-slate-500 dark:text-slate-300 mb-4">
                 Last Updated: {new Date(data.timestamp).toLocaleString()}
             </p>
 
