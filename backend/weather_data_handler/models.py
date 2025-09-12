@@ -8,6 +8,9 @@ class WeatherStation(models.Model):
     rainfall_calibration_factor = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.name} ({self.device_id})"
+
 
 class WeatherStationAPIKey(AbstractAPIKey):
     station = models.ForeignKey(WeatherStation, on_delete=models.CASCADE, related_name='api_keys')
@@ -22,6 +25,9 @@ class UploadBatch(models.Model):
     bucket_tips = models.PositiveIntegerField()
     rainfall_mm = models.FloatField(blank=True)  # rainfall per hour
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Upload batch for {self.station.name} at {self.created_at}"
 
 
 class Reading(models.Model):
