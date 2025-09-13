@@ -62,41 +62,31 @@ const ChartSkeleton = () => (
 
 
 
-const MetricChart = ({metric, data, isLoading}: MetricChartProps) => {
-    const chartConfig = metricChartConfigurations[metric];
-
-
-    if (isLoading || !data) {
+const MetricChart = ({ metric, data, isLoading }: MetricChartProps) => {
+    if (isLoading) {
         return <ChartSkeleton />;
     }
 
+    const chartConfig = metricChartConfigurations[metric];
 
     return (
-        <Card >
+        <Card>
             <CardHeader>
                 <CardTitle>{chartConfig.label}</CardTitle>
-                <CardDescription>{chartConfig.label} over the last 24 hours.</CardDescription>
+                <CardDescription>Last 24 hours</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={metricChartConfigurations} className={"h-[250px] w-full"}>
-                    <LineChart
-                        accessibilityLayer
-                        data={data}
-                        margin={{
-                            left: 12,
-                            right: 12,
-                        }}
-                    >
+                <ChartContainer config={{ [metric]: chartConfig }} className={"h-[250px] w-full"}>
+                    <LineChart data={data} margin={{ left: 12, right: 12 }}>
                         <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="timestamp"
-                            tickMargin={8}
-
+                        <XAxis dataKey="timestamp" tickLine={false} axisLine={false} tickMargin={8} />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            width={30}
+                            domain={['dataMin - 1', 'dataMax + 1']}
                         />
-                        <YAxis width={30} />
-                        <ChartTooltip
-                            content={<ChartTooltipContent hideLabel />}
-                        />
+                        <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
                         <Line
                             dataKey={metric}
                             type="natural"
@@ -107,10 +97,7 @@ const MetricChart = ({metric, data, isLoading}: MetricChartProps) => {
                 </ChartContainer>
             </CardContent>
         </Card>
-
-
-
-    )
+    );
 };
 
 export default MetricChart;
