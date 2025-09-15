@@ -33,9 +33,9 @@ class UploadBatch(models.Model):
 class Reading(models.Model):
     batch = models.ForeignKey(UploadBatch, on_delete=models.CASCADE, related_name='readings')
     timestamp = models.DateTimeField(db_index=True)
-    temperature = models.FloatField()
-    humidity = models.FloatField()
-    pressure = models.FloatField()
+    temperature = models.FloatField(null=True, blank=True)
+    humidity = models.FloatField(null=True, blank=True)
+    pressure = models.FloatField(null=True, blank=True)
 
     class Meta:
         ordering = ['-timestamp']
