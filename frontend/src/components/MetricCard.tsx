@@ -48,7 +48,7 @@ const MetricCard = ({ label, value, unit, icon, change}: MetricCardProps) => {
             </CardHeader>
 
             <CardContent>
-                <p>{value} {unit}</p>
+                <p>{value === null ? "N/A" : `${value} ${unit}`}</p>
                 {change !== null && (
                     <p className={`text-sm font-medium ${change > 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {change > 0 ? '+' : ''}{change.toFixed(2)} since last update
