@@ -4,9 +4,9 @@ from .models import Reading
 
 class _UploadReadingSerializer(serializers.Serializer):
     timestamp = serializers.IntegerField()
-    temperature = serializers.FloatField()
-    humidity = serializers.FloatField()
-    pressure = serializers.FloatField()
+    temperature = serializers.FloatField(allow_null=True)
+    humidity = serializers.FloatField(allow_null=True)
+    pressure = serializers.FloatField(allow_null=True)
 
 
 class WeatherUploadSerializer(serializers.Serializer):
