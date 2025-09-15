@@ -173,21 +173,35 @@ void logSensorReadings()
   Serial.println(datetime);
 
   Serial.print("Temperature: ");
-  Serial.println(temperature);
-
+  isnan(temperature) ? Serial.println("FAILED") : Serial.println(temperature);
   Serial.print("Humidity: ");
-  Serial.println(humidity);
-
+  (isnan(humidity) || humidity == 0.0f) ? Serial.println("FAILED (Invalid Value)") : Serial.println(humidity);
   Serial.print("Pressure: ");
-  Serial.println(pressure);
+  isnan(pressure) ? Serial.println("FAILED") : Serial.println(pressure);
 
   File dataFile = LittleFS.open("/datalog.csv", "a");
   if (dataFile)
   {
-    char csvLine[128];
-    sprintf(csvLine, "%ld,%.2f,%.2f,%.2f",
-            now.unixtime(), temperature, humidity, pressure);
-    dataFile.println(csvLine);
+    char tempStr[10] = "";
+    char humStr[10] = "";
+    char presStr[12] = "";
+
+    if (!isnan(temperature))
+    {
+      dtostrf(temperature, 1, 2, tempStr);
+    }
+
+    if (!isnan(humidity) && humidity > 0.0f)
+    {
+      dtostrf(humidity, 1, 2, humStr);
+    }
+
+    if (!isnan(pressure))
+    {
+      dtostrf(pressure, 1, 2, presStr);
+    }
+
+    dataFile.printf("%ld,%s,%s,%s\n", now.unixtime(), tempStr, humStr, presStr);
     dataFile.close();
 
     cycleCount++;
@@ -262,14 +276,38 @@ void parseDatalogFile(JsonDocument &doc)
 
     String timeString = line.substring(0, indexOfFirstComma);
     String temperatureString = line.substring(indexOfFirstComma + 1, indexOfSeccondComma);
-    String humidtyString = line.substring(indexOfSeccondComma + 1, indexOfThirdComma);
+    String humidityString = line.substring(indexOfSeccondComma + 1, indexOfThirdComma);
     String pressureString = line.substring(indexOfThirdComma + 1);
 
     // Adding reading to JSON
     reading["timestamp"] = atol(timeString.c_str());
-    reading["temperature"] = temperatureString.toFloat();
-    reading["humidity"] = humidtyString.toFloat();
-    reading["pressure"] = pressureString.toFloat();
+
+    if (temperatureString.length() == 0)
+    {
+      reading["temperature"] = serialized(nullptr);
+    }
+    else
+    {
+      reading["temperature"] = temperatureString.toFloat();
+    }
+
+    if (humidityString.length() == 0)
+    {
+      reading["humidity"] = serialized(nullptr);
+    }
+    else
+    {
+      reading["humidity"] = humidityString.toFloat();
+    }
+
+    if (pressureString.length() == 0)
+    {
+      reading["pressure"] = serialized(nullptr);
+    }
+    else
+    {
+      reading["pressure"] = pressureString.toFloat();
+    }
   }
   dataFile.close();
 }
