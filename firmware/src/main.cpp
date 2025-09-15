@@ -15,6 +15,8 @@
 #define SLEEP_DURATION_BETWEEN_READINGS 150
 #define DAY_READINGS_THRESHOLD 8
 #define NIGHT_READINGS_THRESHOLD 24
+#define I2C_SDA_PIN 21
+#define I2C_SCL_PIN 22
 
 RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
@@ -40,8 +42,8 @@ void setup()
   Serial.begin(115200);
   delay(2000);
 
-  // Starting and check I2C devices
-  Wire.begin(21, 22);
+  // Starting and checking I2C devices
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 
   if (!bme.begin(0x76))
   {
