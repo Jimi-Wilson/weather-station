@@ -284,7 +284,7 @@ void parseDatalogFile(JsonDocument &doc)
 
     if (temperatureString.length() == 0)
     {
-      reading["temperature"] = serialized(nullptr);
+      reading["temperature"] = nullptr;
     }
     else
     {
@@ -293,7 +293,7 @@ void parseDatalogFile(JsonDocument &doc)
 
     if (humidityString.length() == 0)
     {
-      reading["humidity"] = serialized(nullptr);
+      reading["humidity"] = nullptr;
     }
     else
     {
@@ -302,7 +302,7 @@ void parseDatalogFile(JsonDocument &doc)
 
     if (pressureString.length() == 0)
     {
-      reading["pressure"] = serialized(nullptr);
+      reading["pressure"] = nullptr;
     }
     else
     {
