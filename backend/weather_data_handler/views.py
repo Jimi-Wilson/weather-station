@@ -1,4 +1,3 @@
-from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from django.db.models import Avg, Max, Min, Count
@@ -53,14 +52,29 @@ class AddWeatherDataView(APIView):
         return Response({"status": "success"}, status=status.HTTP_201_CREATED)
 
 
-class GetLatestWeatherDataView(generics.RetrieveAPIView):
-    serializer_class = ReadingSerializer
+class GetLatestWeatherDataView(APIView):
+    def get(self, request):
 
-    def get_object(self):
         try:
-            return Reading.objects.latest("timestamp")
+            lastest_reading = Reading.objects.latest("timestamp")
         except Reading.DoesNotExist:
-            raise Http404
+            return Response(
+                {"error": "No weather data found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        lastest_reading_batch = lastest_reading.batch
+        batch_diff = lastest_reading_batch.difference_to_previous_batch()
+
+        serializer = ReadingSerializer(lastest_reading)
+        reading_data = serializer.data
+
+        response_data = {
+            "latest_reading": reading_data,
+            "difference_from_previous": batch_diff,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class GetWeatherBetweenDates(generics.ListAPIView):
