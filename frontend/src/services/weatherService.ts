@@ -1,9 +1,9 @@
 import {apiClient} from "@/services/api.ts";
-import type {PaginatedWeatherResponse, WeatherReading, WeatherStats} from "@/services/types.ts";
+import type {LatestWeatherReading, PaginatedWeatherResponse, WeatherReading, WeatherStats} from "@/services/types.ts";
 import type { AxiosResponse } from 'axios';
 
 export const weatherService = {
-    getLatestWeather: async (): Promise<WeatherReading> => {
+    getLatestWeather: async (): Promise<LatestWeatherReading> => {
         const response = await apiClient.get('/weather/latest');
         return response.data;
     },
