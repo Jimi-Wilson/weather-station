@@ -5,6 +5,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import {ArrowDown, ArrowUp, Minus} from "lucide-react";
 
 type MetricCardProps = {
     label: string;
@@ -31,6 +32,30 @@ type CardStyleKey = keyof typeof cardStyles;
 const MetricCard = ({ label, value, unit, icon, change}: MetricCardProps) => {
     const cardStyle = cardStyles[label.toLowerCase() as CardStyleKey];
 
+    const getChangeIndicator = () => {
+        if (change === null || change === undefined) {
+            return null;
+        }
+
+        let colorClass = 'text-slate-500';
+        let ChangeIcon = <Minus size={16} />;
+
+        if (change > 0) {
+            colorClass = 'text-green-500';
+            ChangeIcon = <ArrowUp size={16} />;
+        }
+        if (change < 0) {
+            colorClass = 'text-red-500';
+            ChangeIcon = <ArrowDown size={16} />;
+        }
+
+        return (
+            <div className={`flex items-center gap-1 font-semibold ${colorClass}`}>
+                {ChangeIcon}
+                <span>{Math.abs(change).toFixed(1)}</span>
+            </div>
+        );
+    };
 
     return (
         <Card>
@@ -48,12 +73,13 @@ const MetricCard = ({ label, value, unit, icon, change}: MetricCardProps) => {
             </CardHeader>
 
             <CardContent>
-                <p>{value === null ? "N/A" : `${value} ${unit}`}</p>
-                {change !== null && (
-                    <p className={`text-sm font-medium ${change > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {change > 0 ? '+' : ''}{change.toFixed(2)} since last update
+                <div className="flex justify-between items-baseline mb-4">
+                    <p className="text-3xl font-bold">
+                        {value === null ? "N/A" : `${value.toFixed(1)} ${unit}`}
                     </p>
-                )}            </CardContent>
+                    {getChangeIndicator()}
+                </div>
+            </CardContent>
         </Card>
 
     );

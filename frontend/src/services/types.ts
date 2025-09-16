@@ -1,3 +1,12 @@
+export interface LatestWeatherReading {
+    latest_reading: WeatherReading;
+    difference_from_previous: {
+        temperature: number | null;
+        humidity: number | null;
+        pressure: number | null;
+    };
+}
+
 export interface WeatherReading {
     timestamp: string;
     temperature: number;

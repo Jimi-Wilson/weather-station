@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useState} from "react";
 import {weatherService} from "@/services/weatherService.ts";
-import type {WeatherReading} from "@/services/types.ts";
+import type {LatestWeatherReading} from "@/services/types.ts";
 import axios from "axios";
 
 export const useLatestWeatherData = (pollInterval: number = 300000) => {
-    const [data, setData] = useState<WeatherReading | null>(null);
+    const [data, setData] = useState<LatestWeatherReading | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
