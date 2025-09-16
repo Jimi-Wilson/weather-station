@@ -22,14 +22,14 @@ export interface PaginatedWeatherResponse {
 }
 
 export interface MetricStats {
-    minimum: number;
-    maximum: number;
-    average: number;
+    minimum: number | null;
+    maximum: number | null;
+    average: number | null;
 }
 
 
 export interface WeatherStats {
-    temperature_stats: MetricStats;
-    humidity_stats: MetricStats;
-    pressure_stats: MetricStats;
+    temperature: MetricStats;
+    humidity: MetricStats;
+    pressure: MetricStats;
 }

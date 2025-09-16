@@ -123,13 +123,18 @@ class GetRecentWeatherDataView(generics.ListAPIView):
         return Reading.objects.filter(timestamp__gte=since).order_by("timestamp")
 
 
-class GetWeatherDataStatsView(generics.GenericAPIView):
+class GetWeatherDataStatsView(APIView):
 
     def get(self, request):
-        hours_str = request.query_params.get("hours", 24)
+        hours_str = request.query_params.get("hours", "24")
 
         try:
             hours = int(hours_str)
+            if hours <= 0:
+                return Response(
+                    {"detail": "Query parameter 'hours must be a positive non-zero integer."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         except ValueError:
             return Response(
                 {"detail": "Query parameter 'hours must be an integer."},
@@ -139,11 +144,6 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
         since = dtz.now() - timedelta(hours=hours)
 
         queryset = Reading.objects.filter(timestamp__gte=since)
-
-        if not queryset.exists():
-            return Response({
-                "detail": "There is no data available for the specified period."
-            })
 
         stats = queryset.aggregate(
             count=Count("id"),
@@ -161,9 +161,6 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
         )
 
         response_data = {
-            "period_hours": hours,
-            "count": stats["count"],
-
             "temperature": {
                 "average": stats["avg_temperature"],
                 "maximum": stats["max_temperature"],
@@ -183,5 +180,4 @@ class GetWeatherDataStatsView(generics.GenericAPIView):
             },
         }
 
-        serializer = WeatherStatsSerializer(instance=response_data)
-        return Response(serializer.data)
+        return Response(response_data, status=status.HTTP_200_OK)
