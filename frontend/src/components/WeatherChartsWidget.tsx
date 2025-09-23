@@ -8,7 +8,7 @@ import type { WeatherReading } from "@/services/types.ts";
 const WeatherChartsWidget = () => {
     const [viewMode, setViewMode] = useState<'raw' | 'smoothed'>('smoothed');
     const [smoothingIntensity, setSmoothingIntensity] = useState(0.8);
-    const { data, isLoading, error } = useRecentWeatherData();
+    const { data, isLoading, error } = useRecentWeatherData("24");
 
     const formattedData = useMemo(() => {
         if (!data) return [];
