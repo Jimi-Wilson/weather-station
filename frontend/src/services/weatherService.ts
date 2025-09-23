@@ -8,10 +8,10 @@ export const weatherService = {
         return response.data;
     },
 
-    getRecentWeather: async (): Promise<WeatherReading[]> => {
+    getRecentWeather: async (hours: string): Promise<WeatherReading[]> => {
         const allResults: WeatherReading[] = [];
         try {
-            let nextUrl: string | null = 'weather/recent/?hours=24';
+            let nextUrl: string | null = 'weather/recent/?hours=' + hours;
 
             while (nextUrl) {
                 const response: AxiosResponse<PaginatedWeatherResponse> = await apiClient.get(nextUrl);
