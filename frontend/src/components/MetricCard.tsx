@@ -89,7 +89,7 @@ const MetricCard = ({ label, value, unit, icon, change, stats}: MetricCardProps)
 
                 {stats && (
                     <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1 pt-4 border-t">
-                        <p className="font-semibold text-slate-600 dark:text-slate-300 mb-2">24-Hour Stats</p>
+                        <p className="font-semibold text-slate-600 dark:text-slate-300 mb-2">Today's Stats</p>
                         <div className="flex justify-between items-center">
                             <span className="flex items-center gap-1"><ArrowUp size={14}/> Max</span>
                             <span>{stats.maximum?.toFixed(1) ?? 'N/A'} {unit}</span>
