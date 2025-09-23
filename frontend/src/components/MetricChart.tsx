@@ -18,7 +18,7 @@ import type {WeatherReading} from "@/services/types.ts";
 import {Skeleton} from "@/components/ui/skeleton.tsx";
 
 interface MetricChartProps {
-    metric: 'temperature' | 'humidity' | 'pressure',
+    metric: 'temperature' | 'humidity' | 'pressure';
     data: WeatherReading[];
     isLoading?: boolean;
 }
@@ -40,8 +40,6 @@ const metricChartConfigurations: ChartConfig = {
 } satisfies ChartConfig;
 
 
-
-
 const ChartSkeleton = () => (
     <Card>
         <CardHeader>
@@ -49,17 +47,13 @@ const ChartSkeleton = () => (
             <Skeleton className="h-4 w-48" />
         </CardHeader>
         <CardContent>
-            <div className="h-[250px] w-full space-y-3">
-                <div className="space-y-2">
-                    <Skeleton className="h-[250px] w-full px-6" />
-                </div>
+            <div className="w-full aspect-video">
+                <Skeleton className="h-full w-full" />
             </div>
+
         </CardContent>
     </Card>
 );
-
-
-
 
 
 const MetricChart = ({ metric, data, isLoading }: MetricChartProps) => {
@@ -69,6 +63,13 @@ const MetricChart = ({ metric, data, isLoading }: MetricChartProps) => {
 
     const chartConfig = metricChartConfigurations[metric];
 
+    const yAxisTickFormatter = (value: number) => {
+        if (value > 100) {
+            return Math.round(value).toString();
+        }
+        return value.toFixed(1);
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -76,14 +77,21 @@ const MetricChart = ({ metric, data, isLoading }: MetricChartProps) => {
                 <CardDescription>Last 24 hours</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={{ [metric]: chartConfig }} className={"h-[250px] w-full"}>
+                <ChartContainer config={{ [metric]: chartConfig }} className="w-full aspect-video">
                     <LineChart data={data} margin={{ left: 12, right: 12 }}>
                         <CartesianGrid vertical={false} />
-                        <XAxis dataKey="timestamp" tickLine={false} axisLine={false} tickMargin={8} />
+                        <XAxis
+                            dataKey="timestamp"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+
+                        />
                         <YAxis
                             tickLine={false}
                             axisLine={false}
                             width={30}
+                            tickFormatter={yAxisTickFormatter}
                             domain={['dataMin - 1', 'dataMax + 1']}
                         />
                         <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
