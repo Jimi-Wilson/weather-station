@@ -41,7 +41,7 @@ const WeatherChartsWidget = () => {
             />
 
 
-            <div className={"flex flex-col gap-4"}>
+            <div className={"mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-4"}>
                 <MetricChart metric="temperature" data={chartData} isLoading={isLoading} />
                 <MetricChart metric="humidity" data={chartData} isLoading={isLoading} />
                 <MetricChart metric="pressure" data={chartData} isLoading={isLoading} />

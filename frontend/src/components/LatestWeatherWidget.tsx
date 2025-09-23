@@ -31,8 +31,8 @@ const LatestWeatherWidget = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-2">Latest Weather Data</h2>
-            <p className="text-slate-500 dark:text-slate-300 mb-4">
+            <h2 className="text-2xl font-bold">Latest Matlock Weather Data</h2>
+            <p className="text-slate-500 dark:text-slate-300 pb-3">
                 Last Updated: {new Date(latestData.latest_reading.timestamp).toLocaleString("en-GB", formattingOptions)}
             </p>
 
