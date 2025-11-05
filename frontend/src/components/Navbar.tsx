@@ -3,8 +3,6 @@ import { IconLink } from '@/components/IconLink';
 
 import GithubDarkUrl from '@/assets/github-mark-white.svg?url';
 import GithubLightUrl from '@/assets/github-mark.svg?url';
-import LinkedInDarkUrl from '@/assets/InBug-White.png?url';
-import LinkedInLightUrl from '@/assets/InBug-Black.png?url';
 
 
 export function Navbar() {
