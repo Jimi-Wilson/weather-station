@@ -18,14 +18,6 @@ export function Navbar() {
                 </div>
                 <div className="flex items-center justify-end gap-2">
                     <IconLink
-                        url="https://www.linkedin.com/in/jimi-wilson-6a0634203/"
-                        text="LinkedIn"
-                        mode="responsive"
-                        lightIconUrl={LinkedInLightUrl}
-                        darkIconUrl={LinkedInDarkUrl}
-                        altText="LinkedIn Icon"
-                    />
-                    <IconLink
                         url="https://github.com/Jimi-Wilson"
                         text="Github"
                         mode="responsive"
