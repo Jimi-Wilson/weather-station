@@ -11,14 +11,13 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
-#define REED_SWITCH_PIN GPIO_NUM_33
 #define SLEEP_DURATION_BETWEEN_READINGS 150
 #define DAY_READINGS_THRESHOLD 8
 #define NIGHT_READINGS_THRESHOLD 24
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
+#define MAX_JSON_ROWS 50
 
-RTC_DATA_ATTR int bucketTipCount = 0;
 RTC_DATA_ATTR int cycleCount = 0;
 RTC_DATA_ATTR bool uploadPending = false;
 RTC_DATA_ATTR uint32_t nextScheduledReading = 0;
@@ -39,87 +38,72 @@ void syncTimeFromNTP();
 
 void setup()
 {
-  Serial.begin(115200);
-  delay(2000);
+  #ifdef DEBUG
+    Serial.begin(115200);
+  #endif
+
 
   // Starting and checking I2C devices
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 
   if (!bme.begin(0x76))
   {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1)
-      ;
+    #ifdef DEBUG
+      Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    #endif
   }
   else
   {
-    Serial.println("BME280 Sensor Initialized.");
+    bme.setSampling(Adafruit_BME280::MODE_FORCED,
+                    Adafruit_BME280::SAMPLING_X1, // Temperature
+                    Adafruit_BME280::SAMPLING_X1, // Pressure
+                    Adafruit_BME280::SAMPLING_X1, // Humidity
+                    Adafruit_BME280::FILTER_OFF);
+
+                    
   }
 
   if (!rtc.begin())
   {
-    Serial.println("Couldn't find RTC! Check wiring.");
-    while (1)
-      ;
-  }
-  else
-  {
-    Serial.println("DS3231 RTC Initialized.");
+    #ifdef DEBUG
+      Serial.println("Couldn't find RTC! Check wiring.");
+    #endif
   }
 
   if (rtc.lostPower())
   {
-    Serial.println("RTC lost power, resetting time");
     syncTimeFromNTP();
   }
 
   setupDatalogFile();
 
-  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  handleWakeup(wakeup_reason);
-
   uint64_t sleepDuration = SLEEP_DURATION_BETWEEN_READINGS;
   DateTime now = rtc.now();
 
-  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
+  logSensorReadings();
+
+  nextScheduledReading = rtc.now().unixtime() + SLEEP_DURATION_BETWEEN_READINGS;
+
+  int currentHour = now.hour();
+  bool isNightTime = (currentHour >= 22 || currentHour < 6);
+  int uploadThreshold = isNightTime ? NIGHT_READINGS_THRESHOLD : DAY_READINGS_THRESHOLD;
+
+
+  if (cycleCount >= uploadThreshold || uploadPending)
   {
-    if (nextScheduledReading > now.unixtime())
+    if (uploadData())
     {
-      sleepDuration = nextScheduledReading - now.unixtime();
+      cycleCount = 0;
+      uploadPending = false;
+      LittleFS.remove("/datalog.csv");
+      setupDatalogFile();
     }
     else
     {
-      wakeup_reason = ESP_SLEEP_WAKEUP_TIMER;
+      uploadPending = true;
     }
   }
 
-  if (wakeup_reason != ESP_SLEEP_WAKEUP_EXT0)
-  {
-    logSensorReadings();
-
-    nextScheduledReading = rtc.now().unixtime() + SLEEP_DURATION_BETWEEN_READINGS;
-
-    int currentHour = now.hour();
-    bool isNightTime = (currentHour >= 22 || currentHour < 6);
-    int uploadThreshold = isNightTime ? NIGHT_READINGS_THRESHOLD : DAY_READINGS_THRESHOLD;
-
-    if (cycleCount >= uploadThreshold || uploadPending)
-    {
-      if (uploadData())
-      {
-        cycleCount = 0;
-        bucketTipCount = 0;
-        uploadPending = false;
-        LittleFS.remove("/datalog.csv");
-        setupDatalogFile();
-      }
-      else
-      {
-        uploadPending = true;
-      }
-    }
-  }
 
   // Deep sleep configuration
   if (sleepDuration < 2)
@@ -128,37 +112,16 @@ void setup()
   }
 
   esp_sleep_enable_timer_wakeup(sleepDuration * 1000000ULL);
-  esp_sleep_enable_ext0_wakeup(REED_SWITCH_PIN, 0);
-  gpio_pullup_en(REED_SWITCH_PIN);
-  gpio_pulldown_dis(REED_SWITCH_PIN);
-
-  Serial.println("Entering deep sleep...");
-  Serial.flush();
+  #ifdef DEBUG
+    Serial.flush();
+  #endif
   esp_deep_sleep_start();
-}
-
-void handleWakeup(esp_sleep_wakeup_cause_t reason)
-{
-
-  switch (reason)
-  {
-  case ESP_SLEEP_WAKEUP_EXT0:
-    Serial.println("Wakeup Reason: Bucket Tip Detected");
-    bucketTipCount++;
-    break;
-
-  case ESP_SLEEP_WAKEUP_TIMER:
-    Serial.println("Wakeup Reason: Timer, Taking Reading");
-    break;
-
-  default:
-    Serial.println("Wakeup Reason: Power on / Reset");
-    break;
-  }
 }
 
 void logSensorReadings()
 {
+  bme.takeForcedMeasurement();
+
   DateTime now = rtc.now();
   float temperature = bme.readTemperature();
   float humidity = bme.readHumidity();
@@ -169,15 +132,17 @@ void logSensorReadings()
           now.year(), now.month(), now.day(),
           now.hour(), now.minute(), now.second());
 
-  Serial.print("Weather Reading at time: ");
-  Serial.println(datetime);
+  #ifdef DEBUG
+    Serial.print("Weather Reading at time: ");
+    Serial.println(datetime);
 
-  Serial.print("Temperature: ");
-  isnan(temperature) ? Serial.println("FAILED") : Serial.println(temperature);
-  Serial.print("Humidity: ");
-  (isnan(humidity) || humidity == 0.0f) ? Serial.println("FAILED (Invalid Value)") : Serial.println(humidity);
-  Serial.print("Pressure: ");
-  isnan(pressure) ? Serial.println("FAILED") : Serial.println(pressure);
+    Serial.print("Temperature: ");
+    isnan(temperature) ? Serial.println("FAILED") : Serial.println(temperature);
+    Serial.print("Humidity: ");
+    (isnan(humidity) || humidity == 0.0f) ? Serial.println("FAILED (Invalid Value)") : Serial.println(humidity);
+    Serial.print("Pressure: ");
+    isnan(pressure) ? Serial.println("FAILED") : Serial.println(pressure);
+  #endif
 
   File dataFile = LittleFS.open("/datalog.csv", "a");
   if (dataFile)
@@ -208,7 +173,9 @@ void logSensorReadings()
   }
   else
   {
-    Serial.println("Failed to open datalog.csv for appending");
+    #ifdef DEBUG
+      Serial.println("Failed to open datalog.csv for appending");
+    #endif
   }
 }
 
@@ -217,12 +184,10 @@ void setupDatalogFile()
   // Starting storage for logs
   if (!LittleFS.begin(true))
   {
-    Serial.println("An error occurred while mounting LittleFS");
+    #ifdef DEBUG
+      Serial.println("An error occurred while mounting LittleFS");
+    #endif
     return;
-  }
-  else
-  {
-    Serial.println("LittleFS mounted successfully.");
   }
 
   // Creating datalog.csv file with headers if it doesn't already exist
@@ -233,11 +198,6 @@ void setupDatalogFile()
     {
       dataFile.println("timestamp,temperature,humidity,pressure");
       dataFile.close();
-      Serial.println("Created datalog.csv with headers");
-    }
-    else
-    {
-      Serial.println("Failed to create datalog.csv");
     }
   }
 }
@@ -247,7 +207,6 @@ void parseDatalogFile(JsonDocument &doc)
   File dataFile = LittleFS.open("/datalog.csv", "r");
   if (!dataFile)
   {
-    Serial.println("Failed to open datalog for reading");
     return;
   }
 
@@ -259,9 +218,10 @@ void parseDatalogFile(JsonDocument &doc)
     dataFile.readStringUntil('\n');
   }
 
+  int rowsProcessed = 0;
+
   // Parsing csv for lines
-  while (dataFile.available())
-  {
+  while (dataFile.available() && rowsProcessed < MAX_JSON_ROWS) {
     String line = dataFile.readStringUntil('\n');
     line.trim();
 
@@ -308,6 +268,7 @@ void parseDatalogFile(JsonDocument &doc)
     {
       reading["pressure"] = pressureString.toFloat();
     }
+    rowsProcessed++;
   }
   dataFile.close();
 }
@@ -318,21 +279,24 @@ bool uploadData()
 
   if (!connectToWiFi())
   {
-    Serial.println("Unable to connect to WiFi");
+    #ifdef DEBUG
+      Serial.println("Unable to connect to WiFi");
+    #endif
     return false;
   }
 
   parseDatalogFile(doc);
 
   doc["device_id"] = DEVICE_ID;
-
-  doc["bucket_tips"] = bucketTipCount;
+  doc["bucket_tips"] = 0;
 
   String jsonPayload;
   serializeJson(doc, jsonPayload);
 
-  Serial.println("Uploading data...");
-  Serial.println(jsonPayload);
+  #ifdef DEBUG
+    Serial.println(jsonPayload);
+    Serial.println("Uploading data...");
+  #endif
 
   // Setting up http request
   HTTPClient http;
@@ -341,24 +305,35 @@ bool uploadData()
   http.addHeader("Authorization", String("Api-Key ") + API_KEY);
   int httpResponseCode = http.POST(jsonPayload);
 
+  #ifdef DEBUG
+    Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+  #endif
+
   // Handle http response
   if (httpResponseCode > 0)
   {
-    Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    #ifdef DEBUG
+      Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    #endif
     String responsePayload = http.getString();
-    Serial.println(responsePayload);
 
-    Serial.println("Data upload successful. Re-syncing RTC time...");
+    #ifdef DEBUG
+      Serial.println("Data upload successful. Re-syncing RTC time...");
+    #endif
     syncTimeFromNTP();
   }
   else
   {
-    Serial.printf("Error code: %d\n", httpResponseCode);
+    #ifdef DEBUG
+      Serial.printf("Error code: %d\n", httpResponseCode);
+    #endif
   }
 
   http.end();
   WiFi.disconnect(true);
-  Serial.println("WiFi disconnected.");
+  #ifdef DEBUG
+    Serial.println("WiFi disconnected.");
+  #endif
 
   if (httpResponseCode >= 200 && httpResponseCode < 300)
   {
@@ -372,74 +347,72 @@ bool uploadData()
 
 bool connectToWiFi()
 {
-  Serial.print("Connecting to WiFi...");
+  #ifdef DEBUG
+    Serial.print("Connecting to WiFi...");
+  #endif
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   int timeoutCounter = 0;
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED && timeoutCounter < 20) { 
     delay(500);
-    Serial.println(".");
     timeoutCounter++;
-    if (timeoutCounter > 30)
-    {
-      Serial.println("\nConnection timed out");
-      return false;
-    }
   }
-  Serial.println("\nConnected to WiFi");
-  return true;
+  return WiFi.status() == WL_CONNECTED;
 }
 
 void syncTimeFromNTP()
 {
-  Serial.println("Attempting to sync RTC with NTP server...");
+  #ifdef DEBUG
+    Serial.println("Attempting to sync RTC with NTP server...");
+  #endif
   bool wifiWasOff = (WiFi.status() != WL_CONNECTED);
-  if (wifiWasOff)
+  if (wifiWasOff && !connectToWiFi())
   {
-    if (!connectToWiFi())
-    {
-      Serial.println("Cannot sync time, WiFi connection failed.");
-      return;
-    }
-  }
-  else
-  {
-    Serial.println("WiFi already connected, proceeding with time sync.");
-  }
+    return;
 
+  }
   timeClient.begin();
-  Serial.println("Updating time from NTP server...");
+  #ifdef DEBUG
+    Serial.println("Updating time from NTP server...");
+  #endif
   if (timeClient.forceUpdate())
   {
     unsigned long epochTime = timeClient.getEpochTime();
     rtc.adjust(DateTime(epochTime));
 
     DateTime now = rtc.now();
-    Serial.print("RTC time successfully synced to (UTC): ");
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(" ");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.println(now.second(), DEC);
+    #ifdef DEBUG
+      Serial.print("RTC time successfully synced to (UTC): ");
+      Serial.print(now.year(), DEC);
+      Serial.print('/');
+      Serial.print(now.month(), DEC);
+      Serial.print('/');
+      Serial.print(now.day(), DEC);
+      Serial.print(" ");
+      Serial.print(now.hour(), DEC);
+      Serial.print(':');
+      Serial.print(now.minute(), DEC);
+      Serial.print(':');
+      Serial.println(now.second(), DEC);
+    #endif
   }
   else
   {
-    Serial.println("Failed to get time from NTP server.");
+    #ifdef DEBUG
+      Serial.println("Failed to get time from NTP server.");
+    #endif
+
   }
 
   if (wifiWasOff)
   {
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
-    Serial.println("WiFi disconnected after time sync.");
+    #ifdef DEBUG
+      Serial.println("WiFi disconnected after time sync.");
+    #endif
+
   }
 }
 
