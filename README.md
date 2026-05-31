@@ -2,10 +2,6 @@
 
 A solar-powered, autonomous weather station that captures environmental data and visualises it on a dashboard.
 
-## Live Demo
-
-[See The Weather Dashboard In Action](https://weather.jimiwilson.tech/)
-
 ##  Photos & Screenshot
 
 ![Screenshot of web dashboard](screenshots/screenshot.png)
