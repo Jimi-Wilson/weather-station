@@ -43,5 +43,16 @@ services:
     networks:
       - internal
 
+  mosquitto:
+      image: eclipse-mosquitto:latest
+      container_name: weather_mosquitto
+      restart: unless-stopped
+      ports:
+        - "1883:1883"
+      volumes:
+        - ./mosquitto/config:/mosquitto/config
+        - ./mosquitto/data:/mosquitto/data
+        - ./mosquitto/log:/mosquitto/log
+
 volumes:
   postgres_data:
