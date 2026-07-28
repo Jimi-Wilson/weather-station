@@ -17,10 +17,15 @@
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define MAX_JSON_ROWS 50
+#define MAX_LOG_ROWS 500
+#define NTP_RESYNC_INTERVAL_SEC 86400UL
+#define WIFI_CONNECT_TIMEOUT_ATTEMPTS 10
 
 RTC_DATA_ATTR int cycleCount = 0;
 RTC_DATA_ATTR bool uploadPending = false;
 RTC_DATA_ATTR uint32_t nextScheduledReading = 0;
+RTC_DATA_ATTR uint32_t lastNtpSync = 0;
+RTC_DATA_ATTR bool rtcHealthy = true;
 
 RTC_DS3231 rtc;
 Adafruit_BME280 bme;
@@ -28,9 +33,9 @@ Adafruit_BME280 bme;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 0);
 
-void handleWakeup(esp_sleep_wakeup_cause_t reason);
 void logSensorReadings();
 void setupDatalogFile();
+void trimDatalogIfNeeded();
 void parseDatalogFile(JsonDocument &doc);
 bool uploadData();
 bool connectToWiFi();
@@ -63,30 +68,32 @@ void setup()
                     
   }
 
-  if (!rtc.begin())
+  rtcHealthy = rtc.begin();
+  if (!rtcHealthy)
   {
     #ifdef DEBUG
       Serial.println("Couldn't find RTC! Check wiring.");
     #endif
   }
 
-  if (rtc.lostPower())
+  if (rtcHealthy && rtc.lostPower())
   {
     syncTimeFromNTP();
   }
 
   setupDatalogFile();
 
-  uint64_t sleepDuration = SLEEP_DURATION_BETWEEN_READINGS;
   DateTime now = rtc.now();
 
   logSensorReadings();
 
-  nextScheduledReading = rtc.now().unixtime() + SLEEP_DURATION_BETWEEN_READINGS;
+  uint32_t thisCycleTarget = nextScheduledReading;
+  nextScheduledReading = now.unixtime() + SLEEP_DURATION_BETWEEN_READINGS;
 
   int currentHour = now.hour();
   bool isNightTime = (currentHour >= 22 || currentHour < 6);
-  int uploadThreshold = isNightTime ? NIGHT_READINGS_THRESHOLD : DAY_READINGS_THRESHOLD;
+  int uploadThreshold = (!rtcHealthy) ? DAY_READINGS_THRESHOLD
+                        : (isNightTime ? NIGHT_READINGS_THRESHOLD : DAY_READINGS_THRESHOLD);
 
 
   if (cycleCount >= uploadThreshold || uploadPending)
@@ -106,6 +113,17 @@ void setup()
 
 
   // Deep sleep configuration
+  uint64_t sleepDuration;
+  if (thisCycleTarget == 0)
+  {
+    sleepDuration = SLEEP_DURATION_BETWEEN_READINGS;
+  }
+  else
+  {
+    uint32_t nowUnix = rtc.now().unixtime();
+    sleepDuration = (thisCycleTarget > nowUnix) ? (thisCycleTarget - nowUnix) : 2;
+  }
+
   if (sleepDuration < 2)
   {
     sleepDuration = 2;
@@ -143,6 +161,9 @@ void logSensorReadings()
     Serial.print("Pressure: ");
     isnan(pressure) ? Serial.println("FAILED") : Serial.println(pressure);
   #endif
+
+  // Guard against unbounded growth if uploads have been failing for a while.
+  trimDatalogIfNeeded();
 
   File dataFile = LittleFS.open("/datalog.csv", "a");
   if (dataFile)
@@ -202,6 +223,66 @@ void setupDatalogFile()
   }
 }
 
+void trimDatalogIfNeeded()
+{
+  File dataFile = LittleFS.open("/datalog.csv", "r");
+  if (!dataFile)
+  {
+    return;
+  }
+
+  int rowCount = 0;
+  if (dataFile.available())
+  {
+    dataFile.readStringUntil('\n'); // header
+  }
+  while (dataFile.available())
+  {
+    dataFile.readStringUntil('\n');
+    rowCount++;
+  }
+  dataFile.close();
+
+  if (rowCount < MAX_LOG_ROWS)
+  {
+    return;
+  }
+
+  #ifdef DEBUG
+    Serial.println("datalog.csv hit row cap, trimming oldest half...");
+  #endif
+
+  File oldFile = LittleFS.open("/datalog.csv", "r");
+  File newFile = LittleFS.open("/datalog_tmp.csv", "w");
+  if (!oldFile || !newFile)
+  {
+    if (oldFile) oldFile.close();
+    if (newFile) newFile.close();
+    return;
+  }
+
+  String header = oldFile.readStringUntil('\n');
+  newFile.println(header);
+
+  int skipCount = rowCount / 2;
+  int idx = 0;
+  while (oldFile.available())
+  {
+    String line = oldFile.readStringUntil('\n');
+    if (idx >= skipCount && line.length() > 0)
+    {
+      newFile.println(line);
+    }
+    idx++;
+  }
+
+  oldFile.close();
+  newFile.close();
+
+  LittleFS.remove("/datalog.csv");
+  LittleFS.rename("/datalog_tmp.csv", "/datalog.csv");
+}
+
 void parseDatalogFile(JsonDocument &doc)
 {
   File dataFile = LittleFS.open("/datalog.csv", "r");
@@ -231,12 +312,12 @@ void parseDatalogFile(JsonDocument &doc)
     JsonObject reading = readings.add<JsonObject>();
 
     int indexOfFirstComma = line.indexOf(',');
-    int indexOfSeccondComma = line.indexOf(',', indexOfFirstComma + 1);
-    int indexOfThirdComma = line.indexOf(',', indexOfSeccondComma + 1);
+    int indexOfSecondComma = line.indexOf(',', indexOfFirstComma + 1);
+    int indexOfThirdComma = line.indexOf(',', indexOfSecondComma + 1);
 
     String timeString = line.substring(0, indexOfFirstComma);
-    String temperatureString = line.substring(indexOfFirstComma + 1, indexOfSeccondComma);
-    String humidityString = line.substring(indexOfSeccondComma + 1, indexOfThirdComma);
+    String temperatureString = line.substring(indexOfFirstComma + 1, indexOfSecondComma);
+    String humidityString = line.substring(indexOfSecondComma + 1, indexOfThirdComma);
     String pressureString = line.substring(indexOfThirdComma + 1);
 
     // Adding reading to JSON
@@ -317,10 +398,14 @@ bool uploadData()
     #endif
     String responsePayload = http.getString();
 
-    #ifdef DEBUG
-      Serial.println("Data upload successful. Re-syncing RTC time...");
-    #endif
-    syncTimeFromNTP();
+    if (rtcHealthy && (rtc.now().unixtime() - lastNtpSync > NTP_RESYNC_INTERVAL_SEC))
+    {
+      #ifdef DEBUG
+        Serial.println("Data upload successful. Re-syncing RTC time...");
+      #endif
+      syncTimeFromNTP();
+      lastNtpSync = rtc.now().unixtime();
+    }
   }
   else
   {
@@ -354,7 +439,7 @@ bool connectToWiFi()
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   int timeoutCounter = 0;
-  while (WiFi.status() != WL_CONNECTED && timeoutCounter < 20) { 
+  while (WiFi.status() != WL_CONNECTED && timeoutCounter < WIFI_CONNECT_TIMEOUT_ATTEMPTS) {
     delay(500);
     timeoutCounter++;
   }
@@ -363,6 +448,11 @@ bool connectToWiFi()
 
 void syncTimeFromNTP()
 {
+  if (!rtcHealthy)
+  {
+    return; // nothing to adjust
+  }
+
   #ifdef DEBUG
     Serial.println("Attempting to sync RTC with NTP server...");
   #endif
@@ -380,6 +470,7 @@ void syncTimeFromNTP()
   {
     unsigned long epochTime = timeClient.getEpochTime();
     rtc.adjust(DateTime(epochTime));
+    lastNtpSync = epochTime;
 
     DateTime now = rtc.now();
     #ifdef DEBUG
