@@ -1,0 +1,36 @@
+from rest_framework import serializers
+from .models import Reading
+
+
+class _UploadReadingSerializer(serializers.Serializer):
+    timestamp = serializers.IntegerField()
+    temperature = serializers.FloatField(allow_null=True)
+    humidity = serializers.FloatField(allow_null=True)
+    pressure = serializers.FloatField(allow_null=True)
+
+
+class WeatherUploadSerializer(serializers.Serializer):
+    device_id = serializers.CharField(max_length=100)
+    bucket_tips = serializers.IntegerField(min_value=0)
+    readings = _UploadReadingSerializer(many=True)
+
+
+class ReadingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reading
+        fields = ['temperature', 'humidity', 'pressure', 'timestamp']
+
+
+class WeatherStatsDetailSerializer(serializers.Serializer):
+    average = serializers.FloatField()
+    maximum = serializers.FloatField()
+    minimum = serializers.FloatField()
+
+
+class WeatherStatsSerializer(serializers.Serializer):
+    period_hours = serializers.IntegerField()
+    count = serializers.IntegerField()
+
+    temperature = WeatherStatsDetailSerializer()
+    humidity = WeatherStatsDetailSerializer()
+    pressure = WeatherStatsDetailSerializer()
