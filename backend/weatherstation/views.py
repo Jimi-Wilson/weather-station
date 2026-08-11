@@ -23,12 +23,6 @@ class RegisterDevice(APIView):
 
         device = get_object_or_404(Device, id=serializer.validated_data.get("device_id"))
 
-        if device.status == Device.Status.ACTIVE:
-            return Response(
-                {"error": "Device already registered"},
-                status=400
-            )
-
         if not check_password(serializer.validated_data["registration_secret"], device.registration_secret_hash):
             return Response(
                 {"error": "Invalid registration secret"},
@@ -38,23 +32,19 @@ class RegisterDevice(APIView):
         api_token, prefix = generate_api_key()
         device.api_key_hash = make_password(api_token)
         device.api_key_prefix = prefix
-        device.status = Device.Status.ACTIVE
-        device.registered_at = timezone.now()
 
-        device.pairing_code_expires_at = (
-                timezone.now() + timedelta(minutes=30)
-        )
-
-        device.pairing_code = generate_pairing_code()
+        # TODO: move device pairing stuff to a separate endpoint
+        # if device.status != Device.Status.ACTIVE:
+        #     device.status = Device.Status.ACTIVE
+        #     device.registered_at = timezone.now()
+        #     device.pairing_code = generate_pairing_code()
+        #     device.pairing_code_expires_at = timezone.now() + timedelta(minutes=30)
 
         device.save()
 
-
         return Response({
             "api_key": api_token,
-            "pairing_code": device.pairing_code
         })
-
 
 class ClaimStation(APIView):
     authentication_classes = [JWTAuthentication]

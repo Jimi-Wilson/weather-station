@@ -4,11 +4,7 @@
 #include <network.h>
 #include <config.h>
 
-RegistrationResult registerDevice() {
-
-    RegistrationResult result;
-    result.success = false;
-
+bool registerDevice() {
     HttpResponse res = makeRegistrationRequest(
         DEVICE_UUID,
         DEVICE_SECRET
@@ -19,7 +15,7 @@ RegistrationResult registerDevice() {
         Serial.println("Failed to register device");
         Serial.println(res.body);
 
-        return result;
+        return false;
     }
 
     Serial.println("Successfully registered device");
@@ -31,26 +27,22 @@ RegistrationResult registerDevice() {
     if (error) {
         Serial.print("Failed to parse registration response: ");
         Serial.println(error.c_str());
-        return result;
+        return false;
     }   
 
     // Getting api key and pairing code, and saving to preferences
     const char* apiKey = doc["api_key"];
-    const char* pairingCode = doc["pairing_code"];
 
-    if (!apiKey || !pairingCode) {
+    if (!apiKey) {
         Serial.println("Registration response missing required fields");
-        return result;
+        return false;
     }
 
     if (!saveApiKey(apiKey)) {
-        return result;
+        return false;
     };
 
     Serial.println("API KEY: " + String(apiKey));
 
-    result.pairingCode = pairingCode;
-    result.success = true;
-
-    return result;
+    return true;
 }

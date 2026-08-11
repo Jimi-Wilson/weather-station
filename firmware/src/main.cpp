@@ -19,10 +19,9 @@ void setup() {
 
 
     if (!hasApiKey()) {
-      RegistrationResult result = registerDevice();
-      if (result.success) {
+      bool result = registerDevice();
+      if (result) {
         Serial.println("Device Registered");
-        Serial.println("Pairing Code: " + result.pairingCode);
       }
     }
 
