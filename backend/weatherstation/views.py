@@ -3,18 +3,20 @@ from datetime import timedelta
 from django.contrib.auth.hashers import make_password, check_password
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from weatherstation.authentication import generate_api_key, generate_pairing_code
+from weatherstation.authentication import generate_api_key, generate_pairing_code, DeviceAuthentication
 from weatherstation.models import Device, WeatherStation
 from weatherstation.serializers import RegistrationSerializer, ClaimStationSerializer
 from weatherstation.throttles import PairingThrottle
 
 
 class RegisterDevice(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -87,3 +89,13 @@ class ClaimStation(APIView):
 
 
         return Response(status=200)
+
+
+# TODO: mainly for claiming station
+class DeviceCheckIn(APIView):
+    authentication_classes = [DeviceAuthentication]
+    permission_classes = [IsAuthenticated]
+
+
+    def post(self):
+        pass
