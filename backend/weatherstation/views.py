@@ -5,11 +5,12 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from weatherstation.authentication import generate_api_key, generate_pairing_code, DeviceAuthentication
-from weatherstation.models import Device, WeatherStation
+from weatherstation.models import Device, WeatherStation, Status
 from weatherstation.serializers import RegistrationSerializer, ClaimStationSerializer
 from weatherstation.throttles import PairingThrottle
 
@@ -26,25 +27,85 @@ class RegisterDevice(APIView):
         if not check_password(serializer.validated_data["registration_secret"], device.registration_secret_hash):
             return Response(
                 {"error": "Invalid registration secret"},
-                status=401
+                status=HTTP_401_UNAUTHORIZED
             )
 
         api_token, prefix = generate_api_key()
         device.api_key_hash = make_password(api_token)
         device.api_key_prefix = prefix
 
-        # TODO: move device pairing stuff to a separate endpoint
-        # if device.status != Device.Status.ACTIVE:
-        #     device.status = Device.Status.ACTIVE
-        #     device.registered_at = timezone.now()
-        #     device.pairing_code = generate_pairing_code()
-        #     device.pairing_code_expires_at = timezone.now() + timedelta(minutes=30)
+        if device.status == Device.Status.INACTIVE:
+            device.status = Device.Status.PENDING
+            device.registered_at = timezone.now()
 
         device.save()
 
         return Response({
             "api_key": api_token,
         })
+
+
+class PairingCodeView(APIView):
+    authentication_classes = [DeviceAuthentication]
+    permission_classes = [IsAuthenticated]
+
+
+    def get(self, request):
+        device = request.device
+
+        if device.status == Device.Status.ACTIVE:
+            return Response(
+                {"error": "Device is already active and claimed."},
+                status=HTTP_400_BAD_REQUEST
+            )
+
+        if device.status == Device.Status.INACTIVE:
+            return Response(
+                {"error": "Device must register before getting a pairing code."},
+                status=HTTP_400_BAD_REQUEST
+            )
+
+        if device.pairing_code and device.pairing_code_expires_at > timezone.now():
+            return Response({
+                "pairing_code": device.pairing_code,
+                "expires_at": device.pairing_code_expires_at
+            })
+
+        return Response({
+            "error": "No active pairing code. Please generate a new one."
+        }, status=HTTP_404_NOT_FOUND)
+
+
+    def post(self, request):
+        device = request.device
+
+        if device.status == Device.Status.ACTIVE:
+            return Response(
+                {"error": "Device is already active and claimed."},
+                status=HTTP_400_BAD_REQUEST
+            )
+
+        if device.status == Device.Status.INACTIVE:
+            return Response(
+                {"error": "Device must register before getting a pairing code."},
+                status=HTTP_400_BAD_REQUEST
+            )
+
+
+        device.pairing_code = generate_pairing_code()
+        device.pairing_code_expires_at = timezone.now() + timedelta(minutes=30)
+
+        device.save()
+
+        return Response({
+            "pairing_code": device.pairing_code,
+            "expires_at": device.pairing_code_expires_at
+        })
+
+
+
+
+
 
 class ClaimStation(APIView):
     authentication_classes = [JWTAuthentication]
@@ -69,12 +130,14 @@ class ClaimStation(APIView):
 
         weather_station.save()
 
-        # Invalidating pairing codes, after station creation
+        # Invalidating pairing codes and make device active after station creation.
         device.pairing_code = None
         device.pairing_code_expires_at = None
+        device.status = Device.Status.ACTIVE
         device.save(update_fields=[
             "pairing_code",
-            "pairing_code_expires_at"
+            "pairing_code_expires_at",
+            "status"
         ])
 
 

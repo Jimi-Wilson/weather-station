@@ -6,6 +6,7 @@ from django.db import models
 
 class Device(models.Model):
     class Status(models.TextChoices):
+        INACTIVE = "INACTIVE", "Inactive"
         PENDING = "PENDING", "Pending"
         ACTIVE = "ACTIVE", "Active"
         DISABLED = "DISABLED", "Disabled"
@@ -31,7 +32,7 @@ class Device(models.Model):
     status = models.CharField(
         max_length=10,
         choices=Status.choices,
-        default=Status.PENDING,
+        default=Status.INACTIVE,
     )
 
     firmware_version = models.CharField(max_length=20)

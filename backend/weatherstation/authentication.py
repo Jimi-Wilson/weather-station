@@ -56,4 +56,7 @@ class DeviceAuthentication(BaseAuthentication):
         if not check_password(token, device.api_key_hash):
             raise AuthenticationFailed("Invalid API key")
 
+        if device.status == Device.Status.DISABLED:
+            raise AuthenticationFailed("This device has been disabled.")
+
         return (device, token)
