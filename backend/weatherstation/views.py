@@ -5,12 +5,13 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_200_OK
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from weatherstation.authentication import generate_api_key, generate_pairing_code, DeviceAuthentication
-from weatherstation.models import Device, WeatherStation, Status
+from weatherstation.authentication import generate_api_key, generate_pairing_code, DeviceAuthentication, \
+    IsDeviceAuthenticated
+from weatherstation.models import Device, WeatherStation
 from weatherstation.serializers import RegistrationSerializer, ClaimStationSerializer
 from weatherstation.throttles import PairingThrottle
 
@@ -47,7 +48,7 @@ class RegisterDevice(APIView):
 
 class PairingCodeView(APIView):
     authentication_classes = [DeviceAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsDeviceAuthenticated]
 
 
     def get(self, request):
@@ -102,11 +103,6 @@ class PairingCodeView(APIView):
             "expires_at": device.pairing_code_expires_at
         })
 
-
-
-
-
-
 class ClaimStation(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -121,7 +117,7 @@ class ClaimStation(APIView):
         if device.pairing_code_expires_at is None or device.pairing_code_expires_at < timezone.now():
             return Response(
                 {"error": "Pairing code expired"},
-                status=400
+                status=HTTP_400_BAD_REQUEST
             )
 
         weather_station, created = WeatherStation.objects.get_or_create(device=device, defaults={
@@ -141,14 +137,20 @@ class ClaimStation(APIView):
         ])
 
 
-        return Response(status=200)
+        return Response(status=HTTP_200_OK)
 
 
 # TODO: mainly for claiming station
-class DeviceCheckIn(APIView):
+class DevicePairingStatus(APIView):
     authentication_classes = [DeviceAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsDeviceAuthenticated]
 
+    def get(self, request):
+        device = request.device
 
-    def post(self):
-        pass
+        station_exists = WeatherStation.objects.filter(device=device).exists()
+
+        if station_exists:
+            return Response({"status": "claimed"}, status=HTTP_200_OK)
+
+        return Response({"status": "unclaimed"}, status=HTTP_200_OK)
