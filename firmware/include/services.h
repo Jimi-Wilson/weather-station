@@ -3,3 +3,5 @@
 
 
 bool registerDevice();
+
+bool isDeviceClaimed();

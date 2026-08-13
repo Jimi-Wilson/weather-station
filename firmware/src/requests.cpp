@@ -1,6 +1,6 @@
 #include <network.h>
 #include <config.h>
-
+#include <storage.h>
 
 
 HttpResponse makeRegistrationRequest(const String& deviceId, const String& registrationSecret) {
@@ -22,3 +22,18 @@ HttpResponse makeRegistrationRequest(const String& deviceId, const String& regis
 
     return res;
 }
+
+
+
+HttpResponse isDevicedClaimedRequest() {
+    HttpRequest req;
+
+    req.method = HttpMethod::GET;
+    req.url = String(API_BASE_URL) + "/device/pairing-code/status";
+    req.apiKey = getApiKey();
+
+    HttpResponse res = makeHttpRequest(req);
+
+    return res;
+}
+

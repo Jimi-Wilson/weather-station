@@ -23,8 +23,14 @@ void setup() {
       if (result) {
         Serial.println("Device Registered");
       }
+      // TODO: handle if register device fails from a mismatch in id and secrete 
     }
 
+    if (!isDeviceClaimed()) {
+      // Start claiming process
+      Serial.println("Device Not Paired, starting pairing procedure...");
+
+    }
   }
 
 

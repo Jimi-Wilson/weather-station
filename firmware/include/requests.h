@@ -6,3 +6,5 @@ HttpResponse makeRegistrationRequest(
     const String& deviceId,
     const String& registrationSecret
 );
+
+HttpResponse isDevicedClaimedRequest();
