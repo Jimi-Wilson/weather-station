@@ -1,0 +1,223 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <U8g2lib.h>
+
+U8G2_SSD1309_128X64_NONAME0_F_HW_I2C display(
+    U8G2_R0,
+    U8X8_PIN_NONE
+);
+
+
+void drawMainMenu(int selected)
+{
+    display.clearBuffer();
+
+    // Title
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(17, 10, "WEATHER STATION");
+
+    display.drawHLine(0, 13, 128);
+
+    // Menu
+    display.setFont(u8g2_font_6x10_tf);
+
+    const char* items[] = {
+        "Current Readings",
+        "Power Information",
+        "Settings",
+        "Go To Sleep"
+    };
+
+    const int itemCount = 4;
+
+    for (int i = 0; i < itemCount; i++)
+    {
+        int y = 16 + (i * 11);
+
+        if (i == selected)
+        {
+            // Draw filled selection rectangle
+            display.drawBox(0, y, 128, 11);
+
+            // Switch drawing to black
+            display.setDrawColor(0);
+
+            display.drawStr(4, y + 9, items[i]);
+
+            // Switch back to normal
+            display.setDrawColor(1);
+        }
+        else
+        {
+            display.drawStr(4, y + 9, items[i]);
+        }
+    }
+
+    display.sendBuffer();
+}
+
+
+void drawCurrentReadings(
+    float temperature,
+    float humidity,
+    float pressure
+)
+{
+    display.clearBuffer();
+
+    // Title
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(14, 10, "CURRENT READINGS");
+
+    display.drawHLine(0, 13, 128);
+
+    // Readings
+display.setFont(u8g2_font_6x10_tf);
+
+const int valueX = 80;
+
+display.setCursor(4, 27);
+display.print("Temperature:");
+display.setCursor(valueX, 27);
+display.print(temperature, 1);
+display.print(" \xB0""C");
+
+display.setCursor(4, 41);
+display.print("Humidity:");
+display.setCursor(valueX, 41);
+display.print(humidity, 1);
+display.print(" %");
+
+display.setCursor(4, 55);
+display.print("Pressure:");
+display.setCursor(valueX, 55);
+display.print(pressure, 0);
+display.print(" hPa");
+
+    display.sendBuffer();
+}
+
+
+void drawSettingsMenu(int selected)
+{
+    display.clearBuffer();
+
+    // Title
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(38, 10, "SETTINGS");
+
+    display.drawHLine(0, 13, 128);
+
+    // Menu items
+    display.setFont(u8g2_font_6x10_tf);
+
+    const char* items[] = {
+        "WiFi Settings",
+        "Pairing Settings",
+        "Back"
+    };
+
+    const int itemCount = 3;
+
+    for (int i = 0; i < itemCount; i++)
+    {
+        int y = 18 + (i * 13);
+
+        if (i == selected)
+        {
+            display.drawBox(0, y, 128, 11);
+
+            display.setDrawColor(0);
+            display.drawStr(4, y + 9, items[i]);
+            display.setDrawColor(1);
+        }
+        else
+        {
+            display.drawStr(4, y + 9, items[i]);
+        }
+    }
+
+    display.sendBuffer();
+}
+
+
+void drawPairingCodeScreen(
+    const char* pairingCode,
+    int selected
+)
+{
+    display.clearBuffer();
+
+    // Title
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(24, 10, "PAIRING CODE");
+
+    display.drawHLine(0, 13, 128);
+
+    // Pairing code label
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(4, 26, "Code:");
+
+    // Pairing code itself
+    display.setFont(u8g2_font_ncenB14_tr);
+    display.drawStr(42, 30, pairingCode);
+
+    // Menu items
+    display.setFont(u8g2_font_6x10_tf);
+
+    const char* items[] = {
+        "Request New Code",
+        "Back"
+    };
+
+    const int itemCount = 2;
+
+    for (int i = 0; i < itemCount; i++)
+    {
+        int y = 36 + (i * 12);
+
+        if (i == selected)
+        {
+            display.drawBox(0, y, 128, 11);
+
+            display.setDrawColor(0);
+            display.drawStr(4, y + 9, items[i]);
+            display.setDrawColor(1);
+        }
+        else
+        {
+            display.drawStr(4, y + 9, items[i]);
+        }
+    }
+
+    display.sendBuffer();
+}
+
+
+
+
+void setup()
+{
+    Serial.begin(115200);
+
+    Serial.println("NEW MENU FIRMWARE RUNNING");
+
+    Wire.begin(21, 22);
+
+    display.setI2CAddress(0x3C * 2);
+    display.begin();
+
+    // Prove we can modify the display
+    display.clearBuffer();
+    display.sendBuffer();
+
+    delay(500);
+
+    drawCurrentReadings(25.6, 25, 1000.25);
+}
+
+void loop()
+{
+}
+
+
