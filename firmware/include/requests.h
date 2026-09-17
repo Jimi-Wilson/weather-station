@@ -7,4 +7,6 @@ HttpResponse makeRegistrationRequest(
     const String& registrationSecret
 );
 
-HttpResponse isDevicedClaimedRequest();
+HttpResponse getPairingCodeRequest();
+HttpResponse createPairingCodeRequest();
+HttpResponse isDeviceClaimedRequest();

@@ -16,6 +16,8 @@ HttpResponse makeHttpRequest(const HttpRequest& req) {
 
     HTTPClient http;
     http.begin(req.url);
+    http.setConnectTimeout(2500);
+    http.setTimeout(2500);
 
     // Attaching apikey, if provided
     if (req.apiKey.length() > 0) {
@@ -55,7 +57,12 @@ bool startWifi(){
     wifiManager.setTitle("Weather Station WIFI Setup");
 
 
-    return wifiManager.autoConnect("weather-station", "12345678");
+    bool connected = wifiManager.autoConnect("weather-station", "12345678");
+    if (connected) {
+        WiFi.setAutoReconnect(true);
+    }
+
+    return connected;
 }
 
 

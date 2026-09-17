@@ -25,15 +25,34 @@ HttpResponse makeRegistrationRequest(const String& deviceId, const String& regis
 
 
 
-HttpResponse isDevicedClaimedRequest() {
+HttpResponse getPairingCodeRequest() {
+    HttpRequest req;
+
+    req.method = HttpMethod::GET;
+    req.url = String(API_BASE_URL) + "/device/pairing-code";
+    req.apiKey = getApiKey();
+
+    return makeHttpRequest(req);
+}
+
+
+HttpResponse createPairingCodeRequest() {
+    HttpRequest req;
+
+    req.method = HttpMethod::POST;
+    req.url = String(API_BASE_URL) + "/device/pairing-code";
+    req.apiKey = getApiKey();
+
+    return makeHttpRequest(req);
+}
+
+
+HttpResponse isDeviceClaimedRequest() {
     HttpRequest req;
 
     req.method = HttpMethod::GET;
     req.url = String(API_BASE_URL) + "/device/pairing-code/status";
     req.apiKey = getApiKey();
 
-    HttpResponse res = makeHttpRequest(req);
-
-    return res;
+    return makeHttpRequest(req);
 }
-

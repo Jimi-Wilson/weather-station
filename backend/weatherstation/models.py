@@ -13,14 +13,19 @@ class Device(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
-        default=uuid.uuid4(),
+        default=uuid.uuid4,
         editable=False,
     )
 
     registration_secret_hash = models.CharField(max_length=128)
 
-    api_key_prefix = models.CharField(max_length=8, unique=True)
-    api_key_hash = models.CharField(max_length=128)
+    api_key_prefix = models.CharField(
+        max_length=8,
+        unique=True,
+        null=True,
+        blank=True,
+    )
+    api_key_hash = models.CharField(max_length=128, blank=True, default="")
 
     pairing_code = models.CharField(max_length=8, unique=True, null=True)
 
@@ -48,7 +53,6 @@ class Device(models.Model):
 
         device = cls(
             registration_secret_hash=make_password(registration_secret),
-            status=cls.Status.PENDING,
         )
 
         device.save()

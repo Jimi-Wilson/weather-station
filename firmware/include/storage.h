@@ -9,6 +9,10 @@ String getApiKey();
 
 bool hasApiKey();
 
+bool saveDeviceClaimed(bool claimed);
+
+bool isDeviceClaimedStored();
+
 
 struct Config {
     float sleep_duration_between_readings = 150;
