@@ -50,22 +50,20 @@ bool hasApiKey() {
     return getApiKey().length() > 0;
 }
 
-bool isApiKeyStored() {
-    return false;
+bool saveDeviceClaimed(bool claimed) {
+    prefs.begin("auth", false);
 
-    prefs.begin("settings", true);
-    String jsonString = prefs.getString("config", "{}");
+    size_t written = prefs.putBool("claimed", claimed);
+
     prefs.end();
-    
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, jsonString);
+    return written > 0;
+}
 
-    if (error) {
-        Serial.print("Failed to parse config: ");
-        Serial.println(error.c_str());
-    }
+bool isDeviceClaimedStored() {
+    prefs.begin("auth", true);
 
-    String apiKey = doc["api-key"] | "";
+    bool claimed = prefs.getBool("claimed", false);
 
-    return apiKey.length() > 0 ? true : false;
+    prefs.end();
+    return claimed;
 }
